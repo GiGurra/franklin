@@ -53,7 +53,6 @@ class CollectionSpec
 
     "find some items" in {
 
-      val store = InMemCollection()
       store.createUniqueIndex("id").await()
 
       val a = Map("id" -> "a", "ouf" -> 123)
@@ -61,9 +60,41 @@ class CollectionSpec
       store.create(a).await()
       store.create(b).await()
 
-      store.find("ouf" -> 123).await().head.data shouldBe a
-      store.find("ouf" -> 123).await().head.data shouldBe a
-      store.find().await().toSet shouldBe Set(Item(a), Item(b))
+      store.where("ouf" -> 123).find.await().head.data shouldBe a
+      store.where("ouf" -> 123).find.await().head.data shouldBe a
+      store.where().find.await().toSet shouldBe Set(Item(a), Item(b))
+    }
+
+    "Update existing values" in {
+
+      store.createUniqueIndex("id").await()
+
+      val a = Map("id" -> "a", "ouf" -> 123)
+      val b = Map("id" -> "b", "bouf" -> "321")
+
+      store.create(a).await()
+      store.create(b).await()
+
+      store.find("id" -> "a").await().head.data shouldBe a
+      store.find("ouf" -> 321).await() shouldBe empty
+
+      val updateWithWrongVersion = Try(store.where("id" -> "a").update(Map("id" -> "a", "ouf" -> 3321), expectVersion = 123L).await())
+      updateWithWrongVersion shouldBe an[Failure[_]]
+      updateWithWrongVersion.failed.get shouldBe an [WrongDataVersion]
+
+      store.find("id" -> "a").await().head.data shouldBe a
+      store.find("id" -> "b").await().head.data shouldBe b
+
+      store.find("id" -> "a").await().head.version shouldBe 0L
+      store.where("id" -> "a").update(Map("id" -> "a", "ouf" -> 321)).await()
+      store.find("ouf" -> 321).await() should not be empty
+
+      store.find("id" -> "a").await().head.data should not be a
+      store.find("id" -> "a").await().head.data shouldBe Map("id" -> "a", "ouf" -> 321)
+
+      // Check that version is incremented
+      store.find("id" -> "a").await().head.version shouldBe 1L
+
     }
 
 

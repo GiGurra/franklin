@@ -15,13 +15,22 @@ trait Collection {
   def create(data: Data): Future[Unit]
   def loadOrCreate(selector: Data, ctor: () => Data): Future[Item]
 
-  def update(selector: Data, data: Data, upsert: Boolean = false, expectVersion: Long = -1): Future[Unit]
-  def append(selector: Data, data: Data, defaultValue: () => Item): Future[Unit]
+  def update(selector: Data, data: Data, upsert: Boolean = false, expectVersion: Long = -1L): Future[Unit]
+  def append(selector: Data, data: Data, defaultValue: () => Data): Future[Unit]
 
   ///////////////////////////
   // Convenience methods
 
-  def find(filters: (String, Any)*): Future[Seq[Item]] = find(filters.toMap)
+  case class where(statements: (String, Any)*) {
+    val selector = statements.toMap
+
+    def find: Future[Seq[Item]] = Collection.this.find(selector)
+    def update(data: Data, upsert: Boolean = false, expectVersion: Long = -1L): Future[Unit] = Collection.this.update(selector, data, upsert, expectVersion)
+    def loadOrCreate(defaultValue: () => Data): Future[Item] = Collection.this.loadOrCreate(selector, defaultValue)
+    def append(data: Data, defaultValue: () => Data): Future[Unit] = Collection.this.append(selector, data, defaultValue)
+  }
+
+  def find(statements: (String, Any)*): Future[Seq[Item]] = find(statements.toMap)
 
 }
 

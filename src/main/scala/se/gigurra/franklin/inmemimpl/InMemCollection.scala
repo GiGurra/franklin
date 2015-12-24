@@ -23,7 +23,7 @@ case class InMemCollection() extends Collection {
   override def update(selector: Data, data: Data, upsert: Boolean, expectVersion: Long): Future[Unit] =
     Future(impl.update(selector, data, upsert, expectVersion))
 
-  override def append(selector: Data, data: Data, defaultValue: () => Item): Future[Unit] =
+  override def append(selector: Data, data: Data, defaultValue: () => Data): Future[Unit] =
     Future(impl.append(selector, data, defaultValue))
 
   override def find(selector: Data): Future[Seq[Item]] =
@@ -42,7 +42,6 @@ case class InMemCollectionImpl() {
   val storedData = new mutable.HashSet[Item]
   val uniqueIndices = new mutable.HashSet[String]
 
-
   def createUniqueIndex(fieldName: String): Unit = synchronized {
     uniqueIndices += fieldName
   }
@@ -55,7 +54,7 @@ case class InMemCollectionImpl() {
     val matchResults =
       storedData
         .map(item => (item, Match(selector, item, expectVersion)))
-        .filterNot(_._2 != WrongPattern)
+        .filter(_._2 != WrongPattern)
 
     matchResults.find(_._2 == WrongVersion) match {
 
@@ -72,8 +71,10 @@ case class InMemCollectionImpl() {
             throw ItemNotFound(s"Couldn't find item for $selector")
           }
         } else {
+
           val newVersion = selected.map(_.version).max + 1
           selected.foreach(storedData -= _)
+
           Try(create(data, newVersion)) match {
             case Success(_) =>
             case Failure(e) =>
@@ -81,9 +82,7 @@ case class InMemCollectionImpl() {
               throw e
           }
         }
-
     }
-
   }
 
   def create(data: Data, version: Long = 0L): Unit = synchronized {
@@ -111,11 +110,11 @@ case class InMemCollectionImpl() {
     }
   }
 
-  def append(selector: Data, data: Data, defaultValue: () => Item): Unit = synchronized {
+  def append(selector: Data, data: Data, defaultValue: () => Data): Unit = synchronized {
     find(selector) match {
 
       case Seq() =>
-        storedData += Append.apply(data, defaultValue())
+        storedData += Append.apply(data, Item(defaultValue()))
 
       case items =>
         storedData -= items.head
