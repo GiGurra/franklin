@@ -14,18 +14,42 @@ import ExecutionContext.Implicits.global
   */
 case class InMemCollection() extends Collection {
 
+  val impl = InMemCollectionImpl()
+
+  override def createUniqueIndex(fieldName: String): Future[Unit] =
+    Future(impl.createUniqueIndex(fieldName))
+
+  override def update(selector: Data, data: Data, upsert: Boolean, expectVersion: Long): Future[Unit] =
+    Future(impl.update(selector, data, upsert, expectVersion))
+
+  override def append(selector: Data, data: Data, defaultValue: () => Item): Future[Unit] =
+    Future(impl.append(selector, data, defaultValue))
+
+  override def find(selector: Data): Future[Seq[Item]] =
+    Future(impl.find(selector))
+
+  override def create(data: Data): Future[Unit] =
+    Future(impl.create(data))
+
+  override def loadOrCreate(selector: Data, ctor: () => Data): Future[Item] =
+    Future(impl.loadOrCreate(selector, ctor))
+
+}
+
+case class InMemCollectionImpl() {
+
   val storedData = new mutable.HashSet[Item]
   val uniqueIndices = new mutable.HashSet[String]
 
-  override def createUniqueIndex(fieldName: String): Future[Unit] = synchronized {
+
+  def createUniqueIndex(fieldName: String): Unit = synchronized {
     uniqueIndices += fieldName
-    Future.successful(())
   }
 
-  override def update(selector: Data,
-                      data: Data,
-                      upsert: Boolean,
-                      expectVersion: Long): Future[Unit] = synchronized {
+  def update(selector: Data,
+                  data: Data,
+                  upsert: Boolean,
+                  expectVersion: Long): Unit = synchronized {
 
     val matchResults =
       storedData
@@ -35,7 +59,7 @@ case class InMemCollection() extends Collection {
     matchResults.find(_._2 == WrongVersion) match {
 
       case Some(pair) =>
-        Future.failed(WrongDataVersion(s"Wrong selected data version for update. Expect = $expectVersion, "))
+        throw WrongDataVersion(s"Wrong selected data version for update. Expect = $expectVersion, ")
 
       case None =>
         val selected = matchResults.map(_._1)
@@ -44,54 +68,56 @@ case class InMemCollection() extends Collection {
           if (upsert) {
             create(data)
           } else {
-            Future.failed(ItemNotFound(s"Couldn't find item for $selector"))
+            throw ItemNotFound(s"Couldn't find item for $selector")
           }
         } else {
           val newVersion = selected.map(_.version).max + 1
           selected.foreach(storedData -= _)
-          Future.successful(storedData += Item(data, newVersion))
+          storedData += Item(data, newVersion)
         }
 
     }
 
   }
 
-  override def create(data: Data): Future[Unit] = synchronized {
+  def create(data: Data): Unit = synchronized {
     val projected = project(data, uniqueIndices)
-    find(projected).flatMap {
-      case Seq() => Future.successful(storedData += Item(data, version = 0))
-      case items => Future.failed(ItemAlreadyExists(s"Item already exists according to specified indices ($uniqueIndices), data: \n$data"))
+    find(projected) match {
+      case Seq() => storedData += Item(data, version = 0)
+      case items => throw ItemAlreadyExists(s"Item already exists according to specified indices ($uniqueIndices), data: \n$data")
     }
   }
 
-  override def find(selector: Data): Future[Seq[Item]] = synchronized {
-    Future.successful(storedData.filter(Match(selector, _) == Correct).toSeq)
+  def find(selector: Data): Seq[Item] = synchronized {
+    storedData.filter(Match(selector, _) == Correct).toSeq
   }
 
-  override def loadOrCreate(selector: Data, ctor: () => Data): Future[Item] = synchronized {
+  def loadOrCreate(selector: Data, ctor: () => Data): Item = synchronized {
     val projected = project(selector, uniqueIndices)
-    find(projected).flatMap {
-      case Seq() => Future.successful {
+    find(projected) match {
+      case Seq() =>
         val item = Item(ctor(), version = 0)
         storedData += item
         item
-      }
+
       case items =>
-        Future.successful(items.head)
+        items.head
     }
   }
 
-  override def append(selector: Data, data: Data, defaultValue: () => Item): Future[Unit] = synchronized {
-    find(selector).flatMap {
-      case Seq() => Future.successful {
+  def append(selector: Data, data: Data, defaultValue: () => Item): Unit = synchronized {
+    find(selector) match {
+
+      case Seq() =>
         storedData += Append.apply(data, defaultValue())
-      }
-      case items => Future.successful {
+
+      case items =>
         storedData -= items.head
         storedData += Append(data, items.head)
-      }
+
     }
   }
+
 
   private def project(selector: Data, fields: Iterable[String]): Data = {
     val projectFields = fields.toSet

@@ -40,7 +40,7 @@ class InMemSpec
       val b = Map("id" -> "b")
 
       store.create(a).await()
-      store.storedData shouldBe Set(Item(a, 0))
+      store.impl.storedData shouldBe Set(Item(a, 0))
 
       val result0 = Try(store.create(b).await())
       result0 shouldBe an[Failure[_]]
@@ -50,7 +50,7 @@ class InMemSpec
       store.createUniqueIndex("woopie")
       store.create(b).await()
 
-      store.storedData shouldBe Set(Item(a, 0), Item(b, 0))
+      store.impl.storedData shouldBe Set(Item(a, 0), Item(b, 0))
 
     }
 
