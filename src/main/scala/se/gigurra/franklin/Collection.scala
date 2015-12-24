@@ -18,13 +18,18 @@ trait Collection {
   def update(selector: Data, data: Data, upsert: Boolean = false, expectVersion: Long = -1): Future[Unit]
   def append(selector: Data, data: Data, defaultValue: () => Item): Future[Unit]
 
+  ///////////////////////////
+  // Convenience methods
+
+  def find(filters: (String, Any)*): Future[Seq[Item]] = find(filters.toMap)
+
 }
 
 object Collection {
   type Data = Map[String, Any]
 }
 
-case class Item(data: Data, version: Long)
+case class Item(data: Data, version: Long = 0)
 
 case class UndefinedBehaviour(message: String, cause: Throwable = null)
   extends CollectionException(message, cause)

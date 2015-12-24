@@ -8,6 +8,7 @@ import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 
 import ExecutionContext.Implicits.global
+import scala.util.{Failure, Success, Try}
 
 /**
   * Created by johan on 2015-12-24.
@@ -73,17 +74,22 @@ case class InMemCollectionImpl() {
         } else {
           val newVersion = selected.map(_.version).max + 1
           selected.foreach(storedData -= _)
-          storedData += Item(data, newVersion)
+          Try(create(data, newVersion)) match {
+            case Success(_) =>
+            case Failure(e) =>
+              selected.foreach(storedData += _)
+              throw e
+          }
         }
 
     }
 
   }
 
-  def create(data: Data): Unit = synchronized {
+  def create(data: Data, version: Long = 0L): Unit = synchronized {
     val projected = project(data, uniqueIndices)
     find(projected) match {
-      case Seq() => storedData += Item(data, version = 0)
+      case Seq() => storedData += Item(data, version)
       case items => throw ItemAlreadyExists(s"Item already exists according to specified indices ($uniqueIndices), data: \n$data")
     }
   }
@@ -96,9 +102,9 @@ case class InMemCollectionImpl() {
     val projected = project(selector, uniqueIndices)
     find(projected) match {
       case Seq() =>
-        val item = Item(ctor(), version = 0)
-        storedData += item
-        item
+        val data = ctor()
+        create(data, version = 0)
+        Item(data, version = 0)
 
       case items =>
         items.head
