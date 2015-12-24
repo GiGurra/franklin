@@ -129,6 +129,28 @@ class CollectionSpec
 
     }
 
+    "Index on arrays / find on index elements" in {
+
+      store.createUniqueIndex("id")
+      store.createUniqueIndex("ids")
+
+      val x = Map("id" -> "a")
+      val a = Map("ids" -> Seq(1,2,3))
+      val b = Map("ids" -> Seq(4,5,6))
+
+      store.where("id"->"a").append(a, () => x).await()
+      store.where("id"->"a").append(b, () => x).await()
+      // Inserting into another document should fail on unique constraints
+
+    }
+
+    "Append on arrays" in {
+      // item -> array
+      // array -> array
+      // array -> item
+      // item -> empty
+      // array -> empty
+    }
 
   }
 }

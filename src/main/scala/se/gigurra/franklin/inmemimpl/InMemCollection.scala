@@ -116,11 +116,19 @@ case class InMemCollectionImpl() {
     find(selector) match {
 
       case Seq() =>
-        storedData += Append.apply(data, Item(defaultValue()))
+        create(Append(data, defaultValue()))
 
       case items =>
-        storedData -= items.head
-        storedData += Append(data, items.head)
+        items.foreach { prevItem =>
+          val version = prevItem.version + 1
+          storedData -= prevItem
+          Try(create(Append(data, prevItem.data), version)) match {
+            case Success(_) =>
+            case Failure(e) =>
+              storedData += prevItem
+              throw e
+          }
+        }
 
     }
   }
