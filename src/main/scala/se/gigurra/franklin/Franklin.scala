@@ -5,7 +5,7 @@ package se.gigurra.franklin
   */
 object Franklin {
 
-  def loadMongo(nodes: Seq[String], database: String): Store = ???
+  def loadMongo(database: String = "local", nodes: Seq[String] = Seq("127.0.0.1:27017")): Store = ???
   def loadInMemory(): Store = ???
 
 }

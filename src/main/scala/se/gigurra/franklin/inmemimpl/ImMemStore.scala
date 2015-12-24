@@ -2,10 +2,19 @@ package se.gigurra.franklin.inmemimpl
 
 import se.gigurra.franklin.{Collection, Store}
 
+import scala.collection.mutable
+
 /**
   * Created by johan on 2015-12-24.
   */
 case class ImMemStore() extends Store {
-  override def getOrCreate(name: String): Collection = ???
-  override def close(): Unit = ???
+
+  private val collections = new mutable.HashMap[String, Collection]()
+
+  override def getOrCreate(name: String): Collection = synchronized {
+    collections.getOrElseUpdate(name, new InMemCollection)
+  }
+
+  override def close(): Unit = {
+  }
 }
