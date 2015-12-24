@@ -14,8 +14,8 @@ import ExecutionContext.Implicits.global
   */
 case class InMemCollection() extends Collection {
 
-  private val storedData = new mutable.HashSet[Item]
-  private val uniqueIndices = new mutable.HashSet[String]
+  val storedData = new mutable.HashSet[Item]
+  val uniqueIndices = new mutable.HashSet[String]
 
   override def createUniqueIndex(fieldName: String): Future[Unit] = synchronized {
     uniqueIndices += fieldName
@@ -40,21 +40,16 @@ case class InMemCollection() extends Collection {
       case None =>
         val selected = matchResults.map(_._1)
 
-        selected.foreach { item =>
-          storedData -= item
-        }
-
         if (selected.isEmpty) {
           if (upsert) {
-            storedData += Item(data, version = 0)
-            Future.successful(())
+            create(data)
           } else {
             Future.failed(ItemNotFound(s"Couldn't find item for $selector"))
           }
         } else {
           val newVersion = selected.map(_.version).max + 1
-          storedData += Item(data, newVersion)
-          Future.successful(())
+          selected.foreach(storedData -= _)
+          Future.successful(storedData += Item(data, newVersion))
         }
 
     }

@@ -8,11 +8,12 @@ import se.gigurra.franklin.Item
   */
 object Match {
 
-  private def apply(pattern: Any, dataValue: Any): Boolean = {
-    if (pattern == dataValue) {
-      true
-    } else {
-      ???
+  private def apply(pattern: Any, data: Any): Boolean = {
+    data match {
+      case data: Number => data == pattern
+      case data: String => data == pattern
+      case data: Boolean => data == pattern
+      case data => ???
     }
   }
 
