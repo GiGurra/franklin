@@ -21,9 +21,8 @@ trait Collection {
   def append(selector: Data, data: Data, defaultValue: () => Data): Future[Unit]
 
   def size(selector: Data): Future[Int]
-  def isEmpty(selector: Data): Future[Boolean] = size(selector).map(_ == 0)
-  def nonEmpty(selector: Data): Future[Boolean] = size(selector).map(_ != 0)
 
+  
   ///////////////////////////
   // Convenience methods
 
@@ -39,6 +38,9 @@ trait Collection {
     def isEmpty: Future[Boolean] = Collection.this.isEmpty(statements.toMap)
     def nonEmpty: Future[Boolean] = Collection.this.nonEmpty(statements.toMap)
   }
+
+  def isEmpty(selector: Data): Future[Boolean] = size(selector).map(_ == 0)
+  def nonEmpty(selector: Data): Future[Boolean] = size(selector).map(_ != 0)
 
   def size(statements: (String, Any)*): Future[Int] = size(statements.toMap)
   def find(statements: (String, Any)*): Future[Seq[Item]] = find(statements.toMap)
