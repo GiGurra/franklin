@@ -6,7 +6,7 @@ import se.gigurra.franklin.inmemimpl.InMemCollection
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
-import scala.util.{Failure, Try}
+import scala.util.{Success, Failure, Try}
 
 class CollectionSpec
   extends WordSpec
@@ -94,6 +94,38 @@ class CollectionSpec
 
       // Check that version is incremented
       store.find("id" -> "a").await().head.version shouldBe 1L
+
+      store.size().await() shouldBe 2
+
+    }
+
+    "Update non-existing values" in {
+
+      store.createUniqueIndex("id").await()
+
+      val a = Map("id" -> "a", "ouf" -> 123)
+
+      val noUpsert = Try(store.where("id"-> "a").update(a, upsert = false).await())
+      noUpsert shouldBe an [Failure[_]]
+      noUpsert.failed.get shouldBe an[ItemNotFound]
+
+      val upsert = Try(store.where("id"-> "a").update(a, upsert = true).await())
+      upsert shouldBe an [Success[_]]
+
+      val upsertRightVersion = Try(store.where("id"-> "a").update(a, upsert = true, expectVersion = 0L).await())
+      upsertRightVersion shouldBe an [Success[_]]
+
+      val upsertWrongVersion = Try(store.where("id"-> "a").update(a, upsert = true, expectVersion = 0L).await())
+      upsertWrongVersion shouldBe an [Failure[_]]
+      upsertWrongVersion.failed.get shouldBe an[WrongDataVersion]
+
+      store.size().await() shouldBe 1
+      store.isEmpty().await() shouldBe false
+      store.nonEmpty().await() shouldBe true
+
+      store.where().size.await() shouldBe 1
+      store.where().isEmpty.await() shouldBe false
+      store.where().nonEmpty.await() shouldBe true
 
     }
 

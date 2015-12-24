@@ -15,4 +15,5 @@ case class MongoCollection() extends Collection {
   override def find(selector: Data): Future[Seq[Item]] = ???
   override def loadOrCreate(selector: Data, ctor: () => Data): Future[Item] = ???
   override def append(selector: Data, data: Data, defaultValue: () => Data): Future[Unit] = ???
+  override def size(selector: Data): Future[Int] = ???
 }

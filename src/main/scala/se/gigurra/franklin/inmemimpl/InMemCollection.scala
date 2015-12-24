@@ -35,6 +35,8 @@ case class InMemCollection() extends Collection {
   override def loadOrCreate(selector: Data, ctor: () => Data): Future[Item] =
     Future(impl.loadOrCreate(selector, ctor))
 
+  override def size(selector: Data): Future[Int] =
+    Future(impl.size(selector))
 }
 
 case class InMemCollectionImpl() {
@@ -123,6 +125,9 @@ case class InMemCollectionImpl() {
     }
   }
 
+  def size(selector: Data): Int = {
+    find(selector).size
+  }
 
   private def project(selector: Data, fields: Iterable[String]): Data = {
     val projectFields = fields.toSet

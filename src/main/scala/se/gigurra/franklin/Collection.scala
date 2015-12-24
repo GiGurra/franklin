@@ -1,7 +1,9 @@
 package se.gigurra.franklin
 
-import scala.concurrent.Future
 import Collection.Data
+import scala.concurrent.{ExecutionContext, Future}
+import ExecutionContext.Implicits.global
+
 
 /**
   * Created by johan on 2015-12-23.
@@ -18,6 +20,10 @@ trait Collection {
   def update(selector: Data, data: Data, upsert: Boolean = false, expectVersion: Long = -1L): Future[Unit]
   def append(selector: Data, data: Data, defaultValue: () => Data): Future[Unit]
 
+  def size(selector: Data): Future[Int]
+  def isEmpty(selector: Data): Future[Boolean] = size(selector).map(_ == 0)
+  def nonEmpty(selector: Data): Future[Boolean] = size(selector).map(_ != 0)
+
   ///////////////////////////
   // Convenience methods
 
@@ -28,9 +34,15 @@ trait Collection {
     def update(data: Data, upsert: Boolean = false, expectVersion: Long = -1L): Future[Unit] = Collection.this.update(selector, data, upsert, expectVersion)
     def loadOrCreate(defaultValue: () => Data): Future[Item] = Collection.this.loadOrCreate(selector, defaultValue)
     def append(data: Data, defaultValue: () => Data): Future[Unit] = Collection.this.append(selector, data, defaultValue)
+    def size: Future[Int] = Collection.this.size(statements.toMap)
+    def isEmpty: Future[Boolean] = Collection.this.isEmpty(statements.toMap)
+    def nonEmpty: Future[Boolean] = Collection.this.nonEmpty(statements.toMap)
   }
 
+  def size(statements: (String, Any)*): Future[Int] = size(statements.toMap)
   def find(statements: (String, Any)*): Future[Seq[Item]] = find(statements.toMap)
+  def isEmpty(statements: (String, Any)*): Future[Boolean] = isEmpty(statements.toMap)
+  def nonEmpty(statements: (String, Any)*): Future[Boolean] = nonEmpty(statements.toMap)
 
 }
 
