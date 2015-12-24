@@ -32,7 +32,7 @@ trait Collection {
 
     def find: Future[Seq[Item]] = Collection.this.find(selector)
     def update(data: Data, upsert: Boolean = false, expectVersion: Long = -1L): Future[Unit] = Collection.this.update(selector, data, upsert, expectVersion)
-    def loadOrCreate(defaultValue: () => Data): Future[Item] = Collection.this.loadOrCreate(selector, defaultValue)
+    def loadOrCreate(ctor: () => Data): Future[Item] = Collection.this.loadOrCreate(selector, ctor)
     def append(data: Data, defaultValue: () => Data): Future[Unit] = Collection.this.append(selector, data, defaultValue)
     def append(field: String, items: Seq[Any], defaultValue: () => Data): Future[Unit] = Collection.this.append(selector, Map(field -> items), defaultValue)
     def size: Future[Int] = Collection.this.size(statements.toMap)

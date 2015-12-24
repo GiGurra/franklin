@@ -80,7 +80,7 @@ class CollectionSpec
 
       val updateWithWrongVersion = Try(store.where("id" -> "a").update(Map("id" -> "a", "ouf" -> 3321), expectVersion = 123L).await())
       updateWithWrongVersion shouldBe an[Failure[_]]
-      updateWithWrongVersion.failed.get shouldBe an [WrongDataVersion]
+      updateWithWrongVersion.failed.get shouldBe an[WrongDataVersion]
 
       store.find("id" -> "a").await().head.data shouldBe a
       store.find("id" -> "b").await().head.data shouldBe b
@@ -105,18 +105,18 @@ class CollectionSpec
 
       val a = Map("id" -> "a", "ouf" -> 123)
 
-      val noUpsert = Try(store.where("id"-> "a").update(a, upsert = false).await())
-      noUpsert shouldBe an [Failure[_]]
+      val noUpsert = Try(store.where("id" -> "a").update(a, upsert = false).await())
+      noUpsert shouldBe an[Failure[_]]
       noUpsert.failed.get shouldBe an[ItemNotFound]
 
-      val upsert = Try(store.where("id"-> "a").update(a, upsert = true).await())
-      upsert shouldBe an [Success[_]]
+      val upsert = Try(store.where("id" -> "a").update(a, upsert = true).await())
+      upsert shouldBe an[Success[_]]
 
-      val upsertRightVersion = Try(store.where("id"-> "a").update(a, upsert = true, expectVersion = 0L).await())
-      upsertRightVersion shouldBe an [Success[_]]
+      val upsertRightVersion = Try(store.where("id" -> "a").update(a, upsert = true, expectVersion = 0L).await())
+      upsertRightVersion shouldBe an[Success[_]]
 
-      val upsertWrongVersion = Try(store.where("id"-> "a").update(a, upsert = true, expectVersion = 0L).await())
-      upsertWrongVersion shouldBe an [Failure[_]]
+      val upsertWrongVersion = Try(store.where("id" -> "a").update(a, upsert = true, expectVersion = 0L).await())
+      upsertWrongVersion shouldBe an[Failure[_]]
       upsertWrongVersion.failed.get shouldBe an[WrongDataVersion]
 
       store.size().await() shouldBe 1
@@ -136,33 +136,37 @@ class CollectionSpec
 
       val x = Map("id" -> "a")
       val y = Map("id" -> "b")
-      val a = Map("ids" -> Seq(1,2,3))
-      val b = Map("ids" -> Seq(4,5,6))
+      val a = Map("ids" -> Seq(1, 2, 3))
+      val b = Map("ids" -> Seq(4, 5, 6))
 
       store.create(x).await()
       store.create(y).await()
-      store.where("id"->"a").append(a, () => x).await()
-      store.where("id"->"a").append(b, () => x).await()
-      store.where("id"->"b").append(a, () => y).await()
-      store.where("id"->"b").append("ids", Seq(11,12,13), () => y).await()
-      store.where().append("ids", Seq(21,22,23), () => y).await()
+      store.where("id" -> "a").append(a, () => x).await()
+      store.where("id" -> "a").append(b, () => x).await()
+      store.where("id" -> "b").append(a, () => y).await()
+      store.where("id" -> "b").append("ids", Seq(11, 12, 13), () => y).await()
+      store.where().append("ids", Seq(21, 22, 23), () => y).await()
 
 
-      store.find("ids" -> Seq(1,2)).await().size shouldBe 2
-      store.find("ids" -> Seq(4,5)).await().size shouldBe 1
+      store.find("ids" -> Seq(1, 2)).await().size shouldBe 2
+      store.find("ids" -> Seq(4, 5)).await().size shouldBe 1
       store.find("ids" -> Seq()).await().size shouldBe 2
       store.find("idsx" -> Seq()).await().size shouldBe 0
-      store.find("ids" -> Seq(11,12,13)).await().size shouldBe 1
-      store.find("ids" -> Seq(21,22,23)).await().size shouldBe 2
+      store.find("ids" -> Seq(11, 12, 13)).await().size shouldBe 1
+      store.find("ids" -> Seq(21, 22, 23)).await().size shouldBe 2
 
     }
 
     "LoadOrCreate" in {
-      // item -> array
-      // array -> array
-      // array -> item
-      // item -> empty
-      // array -> empty
+      store.createUniqueIndex("idx")
+
+      val x1 = store.where("idx" -> 1).loadOrCreate(() => Map("idx" -> 1, "name" -> "apan1", "yo" -> "da")).await()
+      val x2 = store.where("idx" -> 2).loadOrCreate(() => Map("idx" -> 2,"name" -> "apan2", "yo" -> "da")).await()
+      val x2b = store.where("idx" -> 2).loadOrCreate(() => Map("idx" -> 2,"name" -> "apan2b", "yo" -> "da")).await()
+
+      store.find("idx" -> 1).await().head.data shouldBe Map("idx" -> 1, "name" -> "apan1", "yo" -> "da")
+      store.find("idx" -> 2).await().head.data shouldBe Map("idx" -> 2, "name" -> "apan2", "yo" -> "da")
+      store.size().await() shouldBe 2
     }
 
   }
