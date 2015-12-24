@@ -6,6 +6,7 @@ import se.gigurra.franklin.Collection.Data
   * Created by johan on 2015-12-24.
   */
 object Append {
+
   def apply(newData: Data, prevData: Data): Data = {
     newData.foldLeft(prevData) { (item, kv) => {
       val key = kv._1

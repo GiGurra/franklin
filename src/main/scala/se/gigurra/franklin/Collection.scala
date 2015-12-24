@@ -34,6 +34,7 @@ trait Collection {
     def update(data: Data, upsert: Boolean = false, expectVersion: Long = -1L): Future[Unit] = Collection.this.update(selector, data, upsert, expectVersion)
     def loadOrCreate(defaultValue: () => Data): Future[Item] = Collection.this.loadOrCreate(selector, defaultValue)
     def append(data: Data, defaultValue: () => Data): Future[Unit] = Collection.this.append(selector, data, defaultValue)
+    def append(field: String, items: Seq[Any], defaultValue: () => Data): Future[Unit] = Collection.this.append(selector, Map(field -> items), defaultValue)
     def size: Future[Int] = Collection.this.size(statements.toMap)
     def isEmpty: Future[Boolean] = Collection.this.isEmpty(statements.toMap)
     def nonEmpty: Future[Boolean] = Collection.this.nonEmpty(statements.toMap)

@@ -129,22 +129,35 @@ class CollectionSpec
 
     }
 
-    "Index on arrays / find on index elements" in {
+    "Index on arrays / find on index elements /Append" in {
 
-      store.createUniqueIndex("id")
-      store.createUniqueIndex("ids")
+      store.createUniqueIndex("id").await()
+      store.createUniqueIndex("ids").await()
 
       val x = Map("id" -> "a")
+      val y = Map("id" -> "b")
       val a = Map("ids" -> Seq(1,2,3))
       val b = Map("ids" -> Seq(4,5,6))
 
+      store.create(x).await()
+      store.create(y).await()
       store.where("id"->"a").append(a, () => x).await()
       store.where("id"->"a").append(b, () => x).await()
-      // Inserting into another document should fail on unique constraints
+      store.where("id"->"b").append(a, () => y).await()
+      store.where("id"->"b").append("ids", Seq(11,12,13), () => y).await()
+      store.where().append("ids", Seq(21,22,23), () => y).await()
+
+
+      store.find("ids" -> Seq(1,2)).await().size shouldBe 2
+      store.find("ids" -> Seq(4,5)).await().size shouldBe 1
+      store.find("ids" -> Seq()).await().size shouldBe 2
+      store.find("idsx" -> Seq()).await().size shouldBe 0
+      store.find("ids" -> Seq(11,12,13)).await().size shouldBe 1
+      store.find("ids" -> Seq(21,22,23)).await().size shouldBe 2
 
     }
 
-    "Append on arrays" in {
+    "LoadOrCreate" in {
       // item -> array
       // array -> array
       // array -> item
