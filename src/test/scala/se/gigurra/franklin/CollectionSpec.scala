@@ -12,14 +12,21 @@ class CollectionSpec
   extends WordSpec
   with MockitoSugar
   with Matchers
-  with OneInstancePerTest {
+  with OneInstancePerTest
+  with BeforeAndAfterEach {
 
   implicit class RichFuture[T](f: Future[T]) {
     def await(): T = Await.result(f, Duration.Inf)
   }
 
-  val store: Collection = InMemCollection()
-  // val store: Collection = MongoCollection()
+  val provider: Store = Franklin.loadInMemory()
+  //val provider: Store = Franklin.loadMongo()
+
+  val store: Collection = provider.getOrCreate("tests")
+
+  override def afterEach(): Unit = {
+    provider.close()
+  }
 
   "InMemCollection" should {
 

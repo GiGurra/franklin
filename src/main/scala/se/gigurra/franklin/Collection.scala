@@ -22,7 +22,7 @@ trait Collection {
 
   def size(selector: Data): Future[Int]
 
-  
+
   ///////////////////////////
   // Convenience methods
 
