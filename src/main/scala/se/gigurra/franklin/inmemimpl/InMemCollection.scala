@@ -39,9 +39,26 @@ case class InMemCollection() extends Collection {
   override def size(selector: Data): Future[Int] =
     Future(impl.size(selector))
 
-  override def wipe(): Wiper = new Wiper {
-    override def yesImSure(): Future[Unit] = Future(impl.deleteAll())
+  override def wipeItems(): ItemsWiper = new ItemsWiper {
+    override def yesImSure(): Future[Unit] = Future(impl.deleteAllItems())
   }
+
+  override def wipeIndices(): IndicesWiper = new IndicesWiper {
+    override def yesImSure(): Future[Unit] = Future(impl.deleteAllIndices())
+  }
+
+  override def deleteItem(selector: Data, expectVersion: Long): Future[Unit] = {
+    Future(impl.deleteItem(selector, expectVersion))
+  }
+
+  override def deleteIndex(index: String)(yeahRly: YeahReally): Future[Unit] = {
+    Future(impl.deleteIndex(index))
+  }
+
+  override def indices: Future[Seq[String]] = {
+    Future(impl.indices)
+  }
+
 }
 
 case class InMemCollectionImpl() {
@@ -119,7 +136,7 @@ case class InMemCollectionImpl() {
 
   def append(selector: Data,
              defaultValue: () => Data,
-             kv: Seq[(String, Iterable[Any])]): Unit = {
+             kv: Seq[(String, Iterable[Any])]): Unit = synchronized {
     find(selector) match {
 
       case Seq() =>
@@ -142,16 +159,40 @@ case class InMemCollectionImpl() {
   }
 
 
-  def size(selector: Data): Int = {
+  def size(selector: Data): Int = synchronized {
     find(selector).size
   }
 
-  def deleteAll(): Unit = {
+  def deleteAllItems(): Unit = synchronized {
     storedData.clear()
 
   }
+  def deleteAllIndices(): Unit = synchronized {
+    uniqueIndices.clear()
+  }
 
-  private def project(selector: Data, fields: Iterable[String]): Data = {
+  def deleteItem(selector: Data, expectVersion: Long): Unit = synchronized {
+
+    def deleteSingleItem(item: Item): Unit = {
+      if (expectVersion != -1 && expectVersion != item.version) {
+        throw WrongDataVersion(s"Cannot delete item of expected version ${expectVersion}, when actual version is ${item.version}")
+      } else {
+        storedData -= item
+      }
+    }
+
+    find(selector) foreach deleteSingleItem
+  }
+
+  def deleteIndex(index: String): Unit = {
+    uniqueIndices -= index
+  }
+
+  def indices: Seq[String] = synchronized {
+    uniqueIndices.toArray.toSeq
+  }
+
+  private def project(selector: Data, fields: Iterable[String]): Data = synchronized {
     val projectFields = fields.toSet
     selector.filterKeys(projectFields.contains)
   }

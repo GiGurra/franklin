@@ -23,7 +23,12 @@ trait Collection {
 
   def size(selector: Data): Future[Int]
 
-  def wipe(): Wiper
+  def wipeItems(): ItemsWiper
+  def wipeIndices(): IndicesWiper
+
+  def indices: Future[Seq[String]]
+  def deleteItem(selector: Data, expectVersion: Long = -1): Future[Unit]
+  def deleteIndex(index: String)(yeahRly: YeahReally): Future[Unit]
 
 
   ///////////////////////////
@@ -77,6 +82,12 @@ case class ItemAlreadyExists(message: String, cause: Throwable = null)
 abstract class CollectionException(message: String, cause: Throwable)
   extends FranklinException(message, cause)
 
-trait Wiper {
+trait ItemsWiper {
   def yesImSure(): Future[Unit]
 }
+
+trait IndicesWiper {
+  def yesImSure(): Future[Unit]
+}
+
+case class YeahReally()

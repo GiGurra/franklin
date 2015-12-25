@@ -1,5 +1,7 @@
 package se.gigurra.franklin
 
+import java.util.UUID
+
 import org.scalatest._
 import org.scalatest.mock._
 import Collection._
@@ -30,7 +32,8 @@ class CollectionSpec
   val store: Collection = provider.getOrCreate("tests")
 
   override def beforeAll(): Unit = {
-    store.wipe().yesImSure().await()
+    store.wipeItems().yesImSure().await()
+    store.wipeIndices().yesImSure().await()
   }
 
   override def afterEach(): Unit = {
@@ -41,6 +44,22 @@ class CollectionSpec
 
     "be created" in {
       store should not be null
+    }
+
+    "create and delete indices" in {
+      store.wipeItems().yesImSure().await()
+      store.wipeIndices().yesImSure().await()
+
+      store.ensureUniqueIndex("id").await()
+      store.indices.await() shouldBe Seq("id")
+      store.ensureUniqueIndex("id1").await()
+      store.ensureUniqueIndex("id2").await()
+      store.ensureUniqueIndex("id3").await()
+
+      store.indices.await().toSet shouldBe Set("id","id1","id2","id3")
+
+      store.wipeIndices().yesImSure().await()
+      store.indices.await() shouldBe empty
     }
 
     "have some indices" in {
@@ -153,13 +172,16 @@ class CollectionSpec
     "Index on arrays / find on index elements /Append" in {
 
       store.ensureUniqueIndex("id").await()
-      store.ensureUniqueIndex("ids").await()
+      store.ensureUniqueIndex("members").await()
 
-      val x = Map("id" -> "a")
-      val y = Map("id" -> "b")
+      val id =randomId
+      val x = Map("id" -> "a", "ids" -> Seq(id))
+      val y = Map("id" -> "b", "members" -> Seq(id))
 
       store.create(x).await()
       store.create(y).await()
+
+
       store.where("id" -> "a").default(x).append("ids" -> Seq(1, 2, 3)).await()
       store.where("id" -> "a").default(x).append("ids" -> Seq(4, 5, 6)).await()
       store.where("id" -> "b").default(y).append("ids" -> Seq(1, 2, 3)).await()
@@ -188,4 +210,7 @@ class CollectionSpec
     }
 
   }
+
+
+  def randomId: String = UUID.randomUUID().toString
 }
