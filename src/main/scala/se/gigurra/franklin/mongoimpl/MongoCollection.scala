@@ -21,7 +21,7 @@ case class MongoCollection(collection: BSONCollection) extends Collection {
 
   import MongoCollection._
 
-  override def ensureUniqueIndex(fieldName: String): Future[Unit] = {
+  override def createUniqueIndex(fieldName: String): Future[Unit] = {
     collection.indexesManager.ensure(Index(Seq(fieldName -> IndexType.Ascending), name = Some(fieldName), unique = true)).map(_ => ())
   }
 
@@ -102,16 +102,33 @@ case class MongoCollection(collection: BSONCollection) extends Collection {
     }
   }
 
-  override def loadOrCreate(selector: Data, ctor: () => Data): Future[Item] = ???
+  override def loadOrCreate(selector: Data, ctor: () => Data): Future[Item] = {
+    find(selector).flatMap {
+      case Seq() =>
+        val data = ctor()
+        update(selector, data, upsert = true).map(_ => Item(data))
+      case items => Future.successful(items.head)
+    }
+  }
 
   override def size(selector: Data): Future[Int] = {
     size(map2mongo(selector))
   }
 
   override def append(selector: Data, defaultObject: () => Data, kv: Seq[(String, Iterable[Any])]): Future[Unit] = {
-    // Append + inc version
-    //
-    ???
+
+    def doAppend(): Future[Unit] = {
+      val pushes = kv.map { case (k, v) => "$push" -> BSONDocument(k -> BSONDocument("$each" -> any2MongoValue(v))) }
+      val updates = BSONDocument(pushes).add("$inc" -> BSONDocument(VERSION -> 1L))
+      val mongoSelector = map2mongo(selector)
+
+      writeOp(collection.update(mongoSelector, updates, upsert = false), _ => Future(()), x => Future.failed(GenericMongoError(x)))
+    }
+
+    contains(selector).flatMap {
+      case true => doAppend()
+      case false => update(selector, defaultObject(), upsert = true).flatMap(_ => doAppend())
+    }
   }
 
   private def size(mongoSelector: BSONDocument): Future[Int] = {

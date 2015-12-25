@@ -11,7 +11,7 @@ import scala.language.implicitConversions
   */
 trait Collection {
 
-  def ensureUniqueIndex(fieldName: String): Future[Unit]
+  def createUniqueIndex(fieldName: String): Future[Unit]
 
   def find(selector: Data): Future[Seq[Item]]
 
@@ -42,6 +42,7 @@ trait Collection {
     def size: Future[Int] = Collection.this.size(statements.toMap)
     def isEmpty: Future[Boolean] = Collection.this.isEmpty(statements.toMap)
     def nonEmpty: Future[Boolean] = Collection.this.nonEmpty(statements.toMap)
+    def contains: Future[Boolean] = nonEmpty
 
     case class default(ctor: () => Data) {
       def loadOrCreate: Future[Item] = Collection.this.loadOrCreate(selector, ctor)
@@ -56,6 +57,8 @@ trait Collection {
   def find(statements: (String, Any)*): Future[Seq[Item]] = find(statements.toMap)
   def isEmpty(statements: (String, Any)*): Future[Boolean] = isEmpty(statements.toMap)
   def nonEmpty(statements: (String, Any)*): Future[Boolean] = nonEmpty(statements.toMap)
+
+  def contains(selector: Data): Future[Boolean] = nonEmpty(selector)
 
 }
 

@@ -1,13 +1,12 @@
 package se.gigurra.franklin.inmemimpl
 
-import se.gigurra.franklin.inmemimpl.Match.{WrongVersion, WrongPattern, Correct}
-import se.gigurra.franklin._
 import se.gigurra.franklin.Collection.Data
+import se.gigurra.franklin._
+import se.gigurra.franklin.inmemimpl.Match.{Correct, WrongPattern, WrongVersion}
 
 import scala.collection.mutable
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
-
-import ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -17,15 +16,14 @@ case class InMemCollection() extends Collection {
 
   val impl = InMemCollectionImpl()
 
-  override def ensureUniqueIndex(fieldName: String): Future[Unit] =
+  override def createUniqueIndex(fieldName: String): Future[Unit] =
     Future(impl.createUniqueIndex(fieldName))
 
   override def update(selector: Data, data: Data, upsert: Boolean, expectVersion: Long): Future[Unit] =
     Future(impl.update(selector, data, upsert, expectVersion))
 
-  override def append(selector: Data, defaultObject: () => Data, kv: Seq[(String, Iterable[Any])]): Future[Unit] = {
+  override def append(selector: Data, defaultObject: () => Data, kv: Seq[(String, Iterable[Any])]): Future[Unit] =
     Future(impl.append(selector, defaultObject, kv))
-  }
 
   override def find(selector: Data): Future[Seq[Item]] =
     Future(impl.find(selector))
@@ -39,6 +37,15 @@ case class InMemCollection() extends Collection {
   override def size(selector: Data): Future[Int] =
     Future(impl.size(selector))
 
+  override def deleteItem(selector: Data, expectVersion: Long): Future[Unit] =
+    Future(impl.deleteItem(selector, expectVersion))
+
+  override def deleteIndex(index: String)(yeahRly: YeahReally): Future[Unit] =
+    Future(impl.deleteIndex(index))
+
+  override def indices: Future[Seq[String]] =
+    Future(impl.indices)
+
   override def wipeItems(): ItemsWiper = new ItemsWiper {
     override def yesImSure(): Future[Unit] = Future(impl.deleteAllItems())
   }
@@ -46,19 +53,6 @@ case class InMemCollection() extends Collection {
   override def wipeIndices(): IndicesWiper = new IndicesWiper {
     override def yesImSure(): Future[Unit] = Future(impl.deleteAllIndices())
   }
-
-  override def deleteItem(selector: Data, expectVersion: Long): Future[Unit] = {
-    Future(impl.deleteItem(selector, expectVersion))
-  }
-
-  override def deleteIndex(index: String)(yeahRly: YeahReally): Future[Unit] = {
-    Future(impl.deleteIndex(index))
-  }
-
-  override def indices: Future[Seq[String]] = {
-    Future(impl.indices)
-  }
-
 }
 
 case class InMemCollectionImpl() {
@@ -71,13 +65,13 @@ case class InMemCollectionImpl() {
   }
 
   def update(selector: Data,
-                  data: Data,
-                  upsert: Boolean,
-                  expectVersion: Long): Unit = synchronized {
+             data: Data,
+             upsert: Boolean,
+             expectVersion: Long): Unit = synchronized {
 
     val matchResults =
       storedData
-        .map(item => (item, Match(selector, item, expectVersion)))
+        .map(item => (item, Match(selector, item, uniqueIndices, expectVersion)))
         .filter(_._2 != WrongPattern)
 
     matchResults.find(_._2 == WrongVersion) match {
@@ -96,13 +90,14 @@ case class InMemCollectionImpl() {
           }
         } else {
 
-          val newVersion = selected.map(_.version).max + 1
-          selected.foreach(storedData -= _)
+          val prevItem = selected.head
+          val newVersion = prevItem.version + 1
+          storedData -= prevItem
 
           Try(create(data, newVersion)) match {
             case Success(_) =>
             case Failure(e) =>
-              selected.foreach(storedData += _)
+              storedData += prevItem
               throw e
           }
         }
@@ -110,20 +105,18 @@ case class InMemCollectionImpl() {
   }
 
   def create(data: Data, version: Long = 1L): Unit = synchronized {
-    val projected = project(data, uniqueIndices)
-    find(projected) match {
+    find(data) match {
       case Seq() => storedData += Item(data, version)
       case items => throw ItemAlreadyExists(s"Item already exists according to specified indices ($uniqueIndices), data: \n$data")
     }
   }
 
   def find(selector: Data): Seq[Item] = synchronized {
-    storedData.filter(Match(selector, _) == Correct).toSeq
+    storedData.filter(Match(selector, _, uniqueIndices) == Correct).toSeq
   }
 
   def loadOrCreate(selector: Data, ctor: () => Data): Item = synchronized {
-    val projected = project(selector, uniqueIndices)
-    find(projected) match {
+    find(selector) match {
       case Seq() =>
         val data = ctor()
         create(data, version = 1)
@@ -143,17 +136,15 @@ case class InMemCollectionImpl() {
         create(Append(kv, defaultValue()))
 
       case items =>
-        items.foreach { prevItem =>
-          val version = prevItem.version + 1
-          storedData -= prevItem
-          Try(create(Append(kv, prevItem.data), version)) match {
-            case Success(_) =>
-            case Failure(e) =>
-              storedData += prevItem
-              throw e
-          }
+        val prevItem = items.head
+        val version = prevItem.version + 1
+        storedData -= prevItem
+        Try(create(Append(kv, prevItem.data), version)) match {
+          case Success(_) =>
+          case Failure(e) =>
+            storedData += prevItem
+            throw e
         }
-
     }
 
   }
@@ -167,6 +158,7 @@ case class InMemCollectionImpl() {
     storedData.clear()
 
   }
+
   def deleteAllIndices(): Unit = synchronized {
     uniqueIndices.clear()
   }
@@ -190,11 +182,6 @@ case class InMemCollectionImpl() {
 
   def indices: Seq[String] = synchronized {
     uniqueIndices.toArray.toSeq
-  }
-
-  private def project(selector: Data, fields: Iterable[String]): Data = synchronized {
-    val projectFields = fields.toSet
-    selector.filterKeys(projectFields.contains)
   }
 
 }
