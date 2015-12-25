@@ -2,7 +2,7 @@ package se.gigurra.franklin
 
 import org.scalatest._
 import org.scalatest.mock._
-import se.gigurra.franklin.inmemimpl.InMemCollection
+import Collection._
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
@@ -143,16 +143,14 @@ class CollectionSpec
 
       val x = Map("id" -> "a")
       val y = Map("id" -> "b")
-      val a = Map("ids" -> Seq(1, 2, 3))
-      val b = Map("ids" -> Seq(4, 5, 6))
 
       store.create(x).await()
       store.create(y).await()
-      store.where("id" -> "a").append(a, () => x).await()
-      store.where("id" -> "a").append(b, () => x).await()
-      store.where("id" -> "b").append(a, () => y).await()
-      store.where("id" -> "b").append("ids", Seq(11, 12, 13), () => y).await()
-      store.where().append("ids", Seq(21, 22, 23), () => y).await()
+      store.where("id" -> "a").default(x).append("ids" -> Seq(1, 2, 3)).await()
+      store.where("id" -> "a").default(x).append("ids" -> Seq(4, 5, 6)).await()
+      store.where("id" -> "b").default(y).append("ids" -> Seq(1, 2, 3)).await()
+      store.where("id" -> "b").default(y).append("ids" -> Seq(11, 12, 13)).await()
+      store.where().default(y).append("ids" -> Seq(21, 22, 23)).await()
 
 
       store.find("ids" -> Seq(1, 2)).await().size shouldBe 2
@@ -167,9 +165,9 @@ class CollectionSpec
     "LoadOrCreate" in {
       store.createUniqueIndex("idx")
 
-      val x1 = store.where("idx" -> 1).loadOrCreate(() => Map("idx" -> 1, "name" -> "apan1", "yo" -> "da")).await()
-      val x2 = store.where("idx" -> 2).loadOrCreate(() => Map("idx" -> 2,"name" -> "apan2", "yo" -> "da")).await()
-      val x2b = store.where("idx" -> 2).loadOrCreate(() => Map("idx" -> 2,"name" -> "apan2b", "yo" -> "da")).await()
+      val x1 = store.where("idx" -> 1).default(Map("idx" -> 1, "name" -> "apan1", "yo" -> "da")).loadOrCreate.await()
+      val x2 = store.where("idx" -> 2).default(Map("idx" -> 2,"name" -> "apan2", "yo" -> "da")).loadOrCreate.await()
+      val x2b = store.where("idx" -> 2).default(Map("idx" -> 2,"name" -> "apan2b", "yo" -> "da")).loadOrCreate.await()
 
       store.find("idx" -> 1).await().head.data shouldBe Map("idx" -> 1, "name" -> "apan1", "yo" -> "da")
       store.find("idx" -> 2).await().head.data shouldBe Map("idx" -> 2, "name" -> "apan2", "yo" -> "da")

@@ -23,8 +23,9 @@ case class InMemCollection() extends Collection {
   override def update(selector: Data, data: Data, upsert: Boolean, expectVersion: Long): Future[Unit] =
     Future(impl.update(selector, data, upsert, expectVersion))
 
-  override def append(selector: Data, data: Data, defaultValue: () => Data): Future[Unit] =
-    Future(impl.append(selector, data, defaultValue))
+  override def append(selector: Data, defaultObject: () => Data, kv: Seq[(String, Iterable[Any])]): Future[Unit] = {
+    Future(impl.append(selector, defaultObject, kv))
+  }
 
   override def find(selector: Data): Future[Seq[Item]] =
     Future(impl.find(selector))
@@ -37,6 +38,7 @@ case class InMemCollection() extends Collection {
 
   override def size(selector: Data): Future[Int] =
     Future(impl.size(selector))
+
 }
 
 case class InMemCollectionImpl() {
@@ -112,17 +114,19 @@ case class InMemCollectionImpl() {
     }
   }
 
-  def append(selector: Data, data: Data, defaultValue: () => Data): Unit = synchronized {
+  def append(selector: Data,
+             defaultValue: () => Data,
+             kv: Seq[(String, Iterable[Any])]): Unit = {
     find(selector) match {
 
       case Seq() =>
-        create(Append(data, defaultValue()))
+        create(Append(kv, defaultValue()))
 
       case items =>
         items.foreach { prevItem =>
           val version = prevItem.version + 1
           storedData -= prevItem
-          Try(create(Append(data, prevItem.data), version)) match {
+          Try(create(Append(kv, prevItem.data), version)) match {
             case Success(_) =>
             case Failure(e) =>
               storedData += prevItem
@@ -131,7 +135,9 @@ case class InMemCollectionImpl() {
         }
 
     }
+
   }
+
 
   def size(selector: Data): Int = {
     find(selector).size

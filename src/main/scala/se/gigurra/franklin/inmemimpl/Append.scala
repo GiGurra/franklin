@@ -7,7 +7,7 @@ import se.gigurra.franklin.Collection.Data
   */
 object Append {
 
-  def apply(newData: Data, prevData: Data): Data = {
+  def apply(newData: Seq[(String, Iterable[Any])], prevData: Data): Data = {
     newData.foldLeft(prevData) { (item, kv) => {
       val key = kv._1
       val value = kv._2
