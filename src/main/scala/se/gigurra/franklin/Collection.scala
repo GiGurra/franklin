@@ -11,7 +11,7 @@ import scala.language.implicitConversions
   */
 trait Collection {
 
-  def createUniqueIndex(fieldName: String): Future[Unit]
+  def ensureUniqueIndex(fieldName: String): Future[Unit]
 
   def find(selector: Data): Future[Seq[Item]]
 
@@ -22,6 +22,8 @@ trait Collection {
   def append(selector: Data, defaultObject: () => Data, kv: Seq[(String, Iterable[Any])]): Future[Unit]
 
   def size(selector: Data): Future[Int]
+
+  def wipe(): Wiper
 
 
   ///////////////////////////
@@ -74,3 +76,7 @@ case class ItemAlreadyExists(message: String, cause: Throwable = null)
 
 abstract class CollectionException(message: String, cause: Throwable)
   extends FranklinException(message, cause)
+
+trait Wiper {
+  def yesImSure(): Future[Unit]
+}

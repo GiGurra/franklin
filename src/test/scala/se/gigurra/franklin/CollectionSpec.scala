@@ -3,16 +3,21 @@ package se.gigurra.franklin
 import org.scalatest._
 import org.scalatest.mock._
 import Collection._
+import reactivemongo.api.indexes.{IndexType, Index}
+import reactivemongo.bson.BSONDocument
+import se.gigurra.franklin.mongoimpl.MongoCollection
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 import scala.util.{Success, Failure, Try}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class CollectionSpec
   extends WordSpec
   with MockitoSugar
   with Matchers
   with OneInstancePerTest
+  with BeforeAndAfterAll
   with BeforeAndAfterEach {
 
   implicit class RichFuture[T](f: Future[T]) {
@@ -23,6 +28,10 @@ class CollectionSpec
   //val provider: Store = Franklin.loadMongo()
 
   val store: Collection = provider.getOrCreate("tests")
+
+  override def beforeAll(): Unit = {
+    store.wipe().yesImSure().await()
+  }
 
   override def afterEach(): Unit = {
     provider.close()
@@ -35,32 +44,35 @@ class CollectionSpec
     }
 
     "have some indices" in {
-      store.createUniqueIndex("id").await()
-      store.createUniqueIndex("woopie").await()
+      store.ensureUniqueIndex("id").await()
+      store.ensureUniqueIndex("woopie").await()
     }
 
     "add some items" in {
 
-      val a = Map("id" -> "a")
-      val b = Map("id" -> "b")
+      store.ensureUniqueIndex("id").await()
 
-      store.create(a).await()
+      val a1 = Map("id" -> "a", "somedata" -> 1)
+      val a2 = Map("id" -> "a", "somedata" -> 2)
 
-      val result0 = Try(store.create(b).await())
-      result0 shouldBe an[Failure[_]]
-      result0.failed.get shouldBe an[ItemAlreadyExists]
+      store.create(a1).await()
+      val resulta2 = Try(store.create(a2).await())
+      resulta2 shouldBe an[Failure[_]]
+      resulta2.failed.get shouldBe an[ItemAlreadyExists]
 
-      store.createUniqueIndex("id").await()
-      store.createUniqueIndex("woopie").await()
-      store.create(b).await()
-      Try(store.create(b).await()) shouldBe an[Failure[_]]
-      Try(store.create(b).await()).failed.get shouldBe an[ItemAlreadyExists]
+      val b1 = Map("id" -> "b", "somedata" -> 1)
+      val b2 = Map("id" -> "b", "somedata" -> 2)
+      store.create(b1).await()
+
+      val result1 = Try(store.create(b2).await())
+      result1 shouldBe an[Failure[_]]
+      Try(store.create(b2).await()).failed.get shouldBe an[ItemAlreadyExists]
 
     }
 
     "find some items" in {
 
-      store.createUniqueIndex("id").await()
+      store.ensureUniqueIndex("id").await()
 
       val a = Map("id" -> "a", "ouf" -> 123)
       val b = Map("id" -> "b", "bouf" -> "321")
@@ -74,7 +86,7 @@ class CollectionSpec
 
     "Update existing values" in {
 
-      store.createUniqueIndex("id").await()
+      store.ensureUniqueIndex("id").await()
 
       val a = Map("id" -> "a", "ouf" -> 123)
       val b = Map("id" -> "b", "bouf" -> "321")
@@ -108,7 +120,7 @@ class CollectionSpec
 
     "Update non-existing values" in {
 
-      store.createUniqueIndex("id").await()
+      store.ensureUniqueIndex("id").await()
 
       val a = Map("id" -> "a", "ouf" -> 123)
 
@@ -138,8 +150,8 @@ class CollectionSpec
 
     "Index on arrays / find on index elements /Append" in {
 
-      store.createUniqueIndex("id").await()
-      store.createUniqueIndex("ids").await()
+      store.ensureUniqueIndex("id").await()
+      store.ensureUniqueIndex("ids").await()
 
       val x = Map("id" -> "a")
       val y = Map("id" -> "b")
@@ -162,7 +174,7 @@ class CollectionSpec
     }
 
     "LoadOrCreate" in {
-      store.createUniqueIndex("idx")
+      store.ensureUniqueIndex("idx")
 
       val x1 = store.where("idx" -> 1).default(Map("idx" -> 1, "name" -> "apan1", "yo" -> "da")).loadOrCreate.await()
       val x2 = store.where("idx" -> 2).default(Map("idx" -> 2,"name" -> "apan2", "yo" -> "da")).loadOrCreate.await()

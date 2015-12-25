@@ -17,7 +17,7 @@ case class InMemCollection() extends Collection {
 
   val impl = InMemCollectionImpl()
 
-  override def createUniqueIndex(fieldName: String): Future[Unit] =
+  override def ensureUniqueIndex(fieldName: String): Future[Unit] =
     Future(impl.createUniqueIndex(fieldName))
 
   override def update(selector: Data, data: Data, upsert: Boolean, expectVersion: Long): Future[Unit] =
@@ -39,6 +39,9 @@ case class InMemCollection() extends Collection {
   override def size(selector: Data): Future[Int] =
     Future(impl.size(selector))
 
+  override def wipe(): Wiper = new Wiper {
+    override def yesImSure(): Future[Unit] = Future(impl.deleteAll())
+  }
 }
 
 case class InMemCollectionImpl() {
@@ -141,6 +144,11 @@ case class InMemCollectionImpl() {
 
   def size(selector: Data): Int = {
     find(selector).size
+  }
+
+  def deleteAll(): Unit = {
+    storedData.clear()
+
   }
 
   private def project(selector: Data, fields: Iterable[String]): Data = {
