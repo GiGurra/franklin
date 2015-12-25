@@ -5,3 +5,4 @@
 No, but seriously, Franklin is just a wrapper for ReactiveMongo with in-memory capabilities. Franklin gets a few new APIs every now and then. Franklin APIs should never really expose any mongodb details - Franklin's API is just asynchronous document/kv-storage.
 
 Extended and tested as needed. Not really meant for anyone else to use, but go ahead (MIT licensed) if you want to.
+Very limited API really only intended to support [valhalla-game](https://github.com/saiaku-gaming/valhalla-server)
