@@ -27,7 +27,7 @@ class CollectionSpec
   }
 
   val provider: Store = Franklin.loadInMemory()
- // val provider: Store = Franklin.loadMongo()
+  //val provider: Store = Franklin.loadMongo()
 
   val store: Collection = provider.getOrCreate("tests")
 
@@ -36,7 +36,7 @@ class CollectionSpec
     store.wipeIndices().yesImSure().await()
   }
 
-  override def afterEach(): Unit = {
+  override def afterAll(): Unit = {
     provider.close()
   }
 
@@ -139,6 +139,25 @@ class CollectionSpec
       store.size().await() shouldBe 2
     }
 
+    "Update existing values -> WrongPattern" in {
+
+      store.createUniqueIndex("id").await()
+
+      val b = Map("id" -> "b", "bouf" -> "321")
+
+      store.create(b).await()
+
+      store.find("id" -> "a").await() shouldBe empty
+      store.find("id" -> "b").await().size shouldBe 1
+
+      val updateWithWrongPattern =
+        Try(store.where("id" -> "a").update(Map("id" -> "a", "ouf" -> 3321), expectVersion = 3131).await())
+
+      updateWithWrongPattern shouldBe an[Failure[_]]
+      updateWithWrongPattern.failed.get shouldBe an[ItemNotFound]
+
+    }
+
     "Update non-existing values" in {
 
       store.createUniqueIndex("id").await()
@@ -184,7 +203,6 @@ class CollectionSpec
       store.where("id" -> "a").default(x).append("ids" -> Seq(1, 2, 3)).await()
       store.where("id" -> "a").default(x).append("ids" -> Seq(4, 5, 6)).await()
       store.where("id" -> "b").default(y).append("ids" -> Seq(7, 8, 9)).await()
-
 
       Try(store.where("id" -> "b").default(y).append("ids" -> Seq(1, 2, 4)).await()) shouldBe an[Failure[_]]
 

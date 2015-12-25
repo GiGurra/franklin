@@ -8,6 +8,19 @@ import se.gigurra.franklin.Item
   */
 object Match {
 
+  def apply(selector: Data, item: Item, uniqueIndices: Iterable[String], expectVersion: Long = -1L): Result = {
+    matchAllOf(selector, item.data, item.version, expectVersion) match {
+      case WrongVersion => WrongVersion
+      case Correct => Correct
+      case WrongPattern => matchesAnyOf(project(selector, uniqueIndices), item.data)
+    }
+  }
+
+  sealed trait Result
+  case object Correct extends Result
+  case object WrongVersion extends Result
+  case object WrongPattern extends Result
+
   private def simple(selectorValue: Any, itemData: Any): Boolean = {
     (selectorValue, itemData) match {
       case (selectorValue: Iterable[Any], itemData: Iterable[Any]) =>
@@ -25,50 +38,25 @@ object Match {
     simple(selectorValue, itemData)
   }
 
-  private def matchesAnyOf(selector: Data,
-                           data: Data,
-                           actualVersion: Long,
-                           expectVersion: Long): Result = {
-
-    val out = if (expectVersion != -1 && expectVersion != actualVersion) {
-      WrongVersion
-    } else {
-      selector.forall {
-        case (selectorKey, selectorValue) =>
-          data.get(selectorKey) match {
-            case Some(dataValue) => apply(selectorValue, dataValue)
-            case None => false
-          }
-      } match {
-        case true => Correct
-        case false => WrongPattern
-      }
-    }
-
-    out
-  }
-
   private def matchAllOf(selector: Data,
                          data: Data,
                          actualVersion: Long,
                          expectVersion: Long): Result = {
 
-    val out = if (expectVersion != -1 && expectVersion != actualVersion) {
-      WrongVersion
-    } else {
-      selector.forall {
-        case (selectorKey, selectorValue) =>
-          data.get(selectorKey) match {
-            case Some(dataValue) => apply(selectorValue, dataValue)
-            case None => false
-          }
-      } match {
-        case true => Correct
-        case false => WrongPattern
+    selector.forall {
+      case (selectorKey, selectorValue) =>
+        data.get(selectorKey) match {
+          case Some(dataValue) => apply(selectorValue, dataValue)
+          case None => false
+        }
+    } match {
+      case true => if (expectVersion != -1 && expectVersion != actualVersion) {
+        WrongVersion
+      } else {
+        Correct
       }
+      case false => WrongPattern
     }
-
-    out
   }
 
   private def matchesAnyOf(selector: Data, data: Data): Result = {
@@ -84,27 +72,10 @@ object Match {
     }
   }
 
-  def apply(selector: Data, item: Item, uniqueIndices: Iterable[String], expectVersion: Long = -1L): Result = {
-    if (matchAllOf(selector, item.data, item.version, expectVersion) == WrongVersion) {
-      WrongVersion
-    } else if (matchesAnyOf(project(selector, uniqueIndices), item.data) == Correct) {
-      Correct
-    } else {
-      matchAllOf(selector, item.data, item.version, expectVersion)
-    }
-  }
-
-  def project(selector: Data, fields: Iterable[String]): Data = synchronized {
+  private def project(selector: Data, fields: Iterable[String]): Data = synchronized {
     val projectFields = fields.toSet
     selector.filterKeys(projectFields.contains)
   }
 
-  sealed trait Result
-
-  case object Correct extends Result
-
-  case object WrongVersion extends Result
-
-  case object WrongPattern extends Result
 
 }
