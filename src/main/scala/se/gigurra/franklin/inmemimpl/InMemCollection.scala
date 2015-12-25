@@ -89,7 +89,7 @@ case class InMemCollectionImpl() {
     }
   }
 
-  def create(data: Data, version: Long = 0L): Unit = synchronized {
+  def create(data: Data, version: Long = 1L): Unit = synchronized {
     val projected = project(data, uniqueIndices)
     find(projected) match {
       case Seq() => storedData += Item(data, version)
@@ -106,8 +106,8 @@ case class InMemCollectionImpl() {
     find(projected) match {
       case Seq() =>
         val data = ctor()
-        create(data, version = 0)
-        Item(data, version = 0)
+        create(data, version = 1)
+        Item(data, version = 1)
 
       case items =>
         items.head

@@ -58,7 +58,7 @@ object Collection {
   implicit def expr2fcn[T](expr: => T): () => T = () => expr
 }
 
-case class Item(data: Data, version: Long = 0)
+case class Item(data: Data, version: Long = 1L)
 
 case class UndefinedBehaviour(message: String, cause: Throwable = null)
   extends CollectionException(message, cause)

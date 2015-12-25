@@ -92,7 +92,7 @@ class CollectionSpec
       store.find("id" -> "a").await().head.data shouldBe a
       store.find("id" -> "b").await().head.data shouldBe b
 
-      store.find("id" -> "a").await().head.version shouldBe 0L
+      store.find("id" -> "a").await().head.version shouldBe 1L
       store.where("id" -> "a").update(Map("id" -> "a", "ouf" -> 321)).await()
       store.find("ouf" -> 321).await() should not be empty
 
@@ -100,7 +100,7 @@ class CollectionSpec
       store.find("id" -> "a").await().head.data shouldBe Map("id" -> "a", "ouf" -> 321)
 
       // Check that version is incremented
-      store.find("id" -> "a").await().head.version shouldBe 1L
+      store.find("id" -> "a").await().head.version shouldBe 2L
 
       store.size().await() shouldBe 2
 
@@ -119,10 +119,10 @@ class CollectionSpec
       val upsert = Try(store.where("id" -> "a").update(a, upsert = true).await())
       upsert shouldBe an[Success[_]]
 
-      val upsertRightVersion = Try(store.where("id" -> "a").update(a, upsert = true, expectVersion = 0L).await())
+      val upsertRightVersion = Try(store.where("id" -> "a").update(a, upsert = true, expectVersion = 1L).await())
       upsertRightVersion shouldBe an[Success[_]]
 
-      val upsertWrongVersion = Try(store.where("id" -> "a").update(a, upsert = true, expectVersion = 0L).await())
+      val upsertWrongVersion = Try(store.where("id" -> "a").update(a, upsert = true, expectVersion = 1L).await())
       upsertWrongVersion shouldBe an[Failure[_]]
       upsertWrongVersion.failed.get shouldBe an[WrongDataVersion]
 
@@ -151,7 +151,6 @@ class CollectionSpec
       store.where("id" -> "b").default(y).append("ids" -> Seq(1, 2, 3)).await()
       store.where("id" -> "b").default(y).append("ids" -> Seq(11, 12, 13)).await()
       store.where().default(y).append("ids" -> Seq(21, 22, 23)).await()
-
 
       store.find("ids" -> Seq(1, 2)).await().size shouldBe 2
       store.find("ids" -> Seq(4, 5)).await().size shouldBe 1
