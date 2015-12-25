@@ -60,13 +60,19 @@ case class MongoCollection(collection: BSONCollection) extends Collection {
       if (n <= 0) {
         size(selectorWithoutVersion).flatMap { n =>
           if (n > 0) {
-            Future.failed(WrongDataVersion(s"Could not find the required item (v. ${expectVersion}) - another was found but with the wrong version for selector ${selectorWithoutVersion}}"))
+            Future.failed(WrongDataVersion(s"Could not find the required item (v. ${expectVersion}) - another was found but with the wrong version for selector ${mongo2map(selectorWithoutVersion)}}"))
           } else {
-            Future.failed(ItemNotFound(s"Could not find the required item (v. ${expectVersion}) to update for selector ${selectorWithoutVersion}}"))
+            Future.failed(ItemNotFound(s"Could not find the required item (v. ${expectVersion}) to update for selector ${mongo2map(selectorWithoutVersion)}}"))
           }
         }
       } else {
         Future(())
+      }
+    }, { message =>
+      if (upsert && expectVersion != -1L) {
+        Future.failed(WrongDataVersion(s"upsert && expectVersion != -1L: Could not find the required item (v. ${expectVersion}) - another was found but with the wrong version for selector ${mongo2map(selectorWithoutVersion)}}, ${message}"))
+      } else {
+        Future.failed(GenericMongoError(s"Could not find the required item (v. ${expectVersion}) to update for selector ${mongo2map(selectorWithoutVersion)}}, ${message}"))
       }
     })
   }
@@ -79,7 +85,7 @@ case class MongoCollection(collection: BSONCollection) extends Collection {
 
   override def wipe(): Wiper = new Wiper {
     override def yesImSure(): Future[Unit] = {
-      writeOp(collection.remove(BSONDocument()), _ => Future(()))
+      writeOp(collection.remove(BSONDocument()), _ => Future(()), _ => Future(()))
     }
   }
 
@@ -102,7 +108,9 @@ case class MongoCollection(collection: BSONCollection) extends Collection {
       collection.count(Some(mongoSelector))
   }
 
-  private def writeOp(op: => Future[WriteResult], updateCountResult: Int => Future[Unit]): Future[Unit] = {
+  private def writeOp(op: => Future[WriteResult],
+                      updateCountResult: Int => Future[Unit],
+                      uniqueConflictResult: String => Future[Unit]): Future[Unit] = {
     op.flatMap { result =>
       if (result.hasErrors) {
         val err = result.writeErrors.head
@@ -111,12 +119,10 @@ case class MongoCollection(collection: BSONCollection) extends Collection {
         updateCountResult(result.n)
       }
     }.recoverWith {
-      case e: DatabaseException if e.code.contains(11000) =>
-        Future.failed(ItemAlreadyExists(s"An item with conflicting unique indices already exists in db (${e.getMessage()})", e))
-      case e: CommandError if e.code.contains(11000) =>
-        Future.failed(ItemAlreadyExists(s"An item with conflicting unique indices already exists in db (${e.getMessage()})", e))
-      case e =>
-        Future.failed(Error(e.getMessage, e))
+      case e: FranklinException => Future.failed(e)
+      case e: DatabaseException if e.code.contains(11000) => uniqueConflictResult(e.getMessage())
+      case e: CommandError if e.code.contains(11000) => uniqueConflictResult(e.getMessage())
+      case e => Future.failed(GenericMongoError(e.getMessage, e))
     }
   }
 
@@ -142,5 +148,5 @@ case class MongoCollection(collection: BSONCollection) extends Collection {
 
 object MongoCollection {
   private val VERSION = "__version"
-  case class Error(message: String, cause: Throwable = null) extends FranklinException(message, cause)
+  case class GenericMongoError(message: String, cause: Throwable = null) extends FranklinException(message, cause)
 }

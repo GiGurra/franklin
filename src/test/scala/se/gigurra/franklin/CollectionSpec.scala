@@ -104,7 +104,6 @@ class CollectionSpec
       updateWithWrongVersion shouldBe an[Failure[_]]
       updateWithWrongVersion.failed.get shouldBe an[WrongDataVersion]
 
-
       store.find("id" -> "a").await().head.data shouldBe a
       store.find("id" -> "b").await().head.data shouldBe b
 
