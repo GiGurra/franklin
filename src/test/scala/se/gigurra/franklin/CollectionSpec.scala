@@ -81,6 +81,7 @@ class CollectionSpec
 
       store.where("ouf" -> 123).find.await().head.data shouldBe a
       store.where("ouf" -> 123).find.await().head.data shouldBe a
+      store.where("bouf" -> "321").find.await().head.data shouldBe b
       store.where().find.await().toSet shouldBe Set(Item(a), Item(b))
     }
 
@@ -97,9 +98,12 @@ class CollectionSpec
       store.find("id" -> "a").await().head.data shouldBe a
       store.find("ouf" -> 321).await() shouldBe empty
 
-      val updateWithWrongVersion = Try(store.where("id" -> "a").update(Map("id" -> "a", "ouf" -> 3321), expectVersion = 123L).await())
+      val updateWithWrongVersion =
+        Try(store.where("id" -> "a").update(Map("id" -> "a", "ouf" -> 3321), expectVersion = 123L).await())
+
       updateWithWrongVersion shouldBe an[Failure[_]]
       updateWithWrongVersion.failed.get shouldBe an[WrongDataVersion]
+
 
       store.find("id" -> "a").await().head.data shouldBe a
       store.find("id" -> "b").await().head.data shouldBe b
@@ -115,7 +119,6 @@ class CollectionSpec
       store.find("id" -> "a").await().head.version shouldBe 2L
 
       store.size().await() shouldBe 2
-
     }
 
     "Update non-existing values" in {

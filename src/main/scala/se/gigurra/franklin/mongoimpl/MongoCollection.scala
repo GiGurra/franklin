@@ -44,17 +44,31 @@ case class MongoCollection(collection: BSONCollection) extends Collection {
     update(raw, raw, upsert = true, expectVersion = -1)
  }
 
-  private def update(selector: BSONDocument, data: BSONDocument, upsert: Boolean, expectVersion: Long): Future[Unit] = {
+  private def update(selectorWithoutVersion: BSONDocument, data: BSONDocument, upsert: Boolean, expectVersion: Long): Future[Unit] = {
 
     val mongoSelector =
-      if (expectVersion != -1L)
-        selector.add(VERSION -> expectVersion)
-      else
-        selector
+      if (expectVersion != -1L) {
+        selectorWithoutVersion.add(VERSION -> expectVersion)
+      }
+      else {
+        selectorWithoutVersion
+      }
 
     val mongoUpdate = BSONDocument("$set" -> data, "$inc" -> BSONDocument(VERSION -> 1L))
 
-    writeOp(collection.update(mongoSelector, mongoUpdate, upsert = upsert))
+    writeOp(collection.update(mongoSelector, mongoUpdate, upsert = upsert), { n =>
+      if (n <= 0) {
+        size(selectorWithoutVersion).flatMap { n =>
+          if (n > 0) {
+            Future.failed(WrongDataVersion(s"Could not find the required item (v. ${expectVersion}) - another was found but with the wrong version for selector ${selectorWithoutVersion}}"))
+          } else {
+            Future.failed(ItemNotFound(s"Could not find the required item (v. ${expectVersion}) to update for selector ${selectorWithoutVersion}}"))
+          }
+        }
+      } else {
+        Future(())
+      }
+    })
   }
 
   override def find(selector: Data): Future[Seq[Item]] = {
@@ -65,17 +79,14 @@ case class MongoCollection(collection: BSONCollection) extends Collection {
 
   override def wipe(): Wiper = new Wiper {
     override def yesImSure(): Future[Unit] = {
-      writeOp(collection.remove(BSONDocument()))
+      writeOp(collection.remove(BSONDocument()), _ => Future(()))
     }
   }
 
   override def loadOrCreate(selector: Data, ctor: () => Data): Future[Item] = ???
 
   override def size(selector: Data): Future[Int] = {
-    if (selector.isEmpty)
-      collection.count()
-    else
-      collection.count(Some(map2mongo(selector)))
+    size(map2mongo(selector))
   }
 
   override def append(selector: Data, defaultObject: () => Data, kv: Seq[(String, Iterable[Any])]): Future[Unit] = {
@@ -84,13 +95,20 @@ case class MongoCollection(collection: BSONCollection) extends Collection {
     ???
   }
 
-  private def writeOp(op: => Future[WriteResult]): Future[Unit] = {
+  private def size(mongoSelector: BSONDocument): Future[Int] = {
+    if (mongoSelector.isEmpty)
+      collection.count()
+    else
+      collection.count(Some(mongoSelector))
+  }
+
+  private def writeOp(op: => Future[WriteResult], updateCountResult: Int => Future[Unit]): Future[Unit] = {
     op.flatMap { result =>
       if (result.hasErrors) {
         val err = result.writeErrors.head
         Future.failed(DefaultBSONCommandError(Some(err.code), Some(err.errmsg), BSONDocument()))
       } else {
-        Future.successful(())
+        updateCountResult(result.n)
       }
     }.recoverWith {
       case e: DatabaseException if e.code.contains(11000) =>
