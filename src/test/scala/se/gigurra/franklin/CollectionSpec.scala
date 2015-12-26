@@ -4,15 +4,11 @@ import java.util.UUID
 
 import org.scalatest._
 import org.scalatest.mock._
-import Collection._
-import reactivemongo.api.indexes.{IndexType, Index}
-import reactivemongo.bson.BSONDocument
-import se.gigurra.franklin.mongoimpl.MongoCollection
+import se.gigurra.franklin.Collection._
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
-import scala.util.{Success, Failure, Try}
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Failure, Success, Try}
 
 class CollectionSpec
   extends WordSpec
@@ -46,15 +42,15 @@ class CollectionSpec
       store should not be null
     }
 
-    "create and delete indices" in {
+    "create and delete unique indices" in {
       store.wipeItems().yesImSure().await()
       store.wipeIndices().yesImSure().await()
 
-      store.createUniqueIndex("id").await()
+      store.createIndex("id", unique = true).await()
       store.indices.await() shouldBe Seq("id")
-      store.createUniqueIndex("id1").await()
-      store.createUniqueIndex("id2").await()
-      store.createUniqueIndex("id3").await()
+      store.createIndex("id1", unique = true).await()
+      store.createIndex("id2", unique = true).await()
+      store.createIndex("id3", unique = true).await()
 
       store.indices.await().toSet shouldBe Set("id", "id1", "id2", "id3")
 
@@ -62,14 +58,25 @@ class CollectionSpec
       store.indices.await() shouldBe empty
     }
 
-    "have some indices" in {
-      store.createUniqueIndex("id").await()
-      store.createUniqueIndex("woopie").await()
+    "create and delete non-unique indices" in {
+      store.wipeItems().yesImSure().await()
+      store.wipeIndices().yesImSure().await()
+
+      store.createIndex("id", unique = false).await()
+      store.indices.await() shouldBe Seq("id")
+      store.createIndex("id1", unique = false).await()
+      store.createIndex("id2", unique = false).await()
+      store.createIndex("id3", unique = false).await()
+
+      store.indices.await().toSet shouldBe Set("id", "id1", "id2", "id3")
+
+      store.wipeIndices().yesImSure().await()
+      store.indices.await() shouldBe empty
     }
 
     "add some items" in {
 
-      store.createUniqueIndex("id").await()
+      store.createIndex("id", unique = true).await()
 
       val a1 = Map("id" -> "a", "somedata" -> 1)
       val a2 = Map("id" -> "a", "somedata" -> 2)
@@ -91,7 +98,7 @@ class CollectionSpec
 
     "find some items" in {
 
-      store.createUniqueIndex("id").await()
+      store.createIndex("id", unique = true).await()
 
       val a = Map("id" -> "a", "ouf" -> 123)
       val b = Map("id" -> "b", "bouf" -> "321")
@@ -106,7 +113,7 @@ class CollectionSpec
 
     "Update existing values" in {
 
-      store.createUniqueIndex("id").await()
+      store.createIndex("id", unique = true).await()
 
       val a = Map("id" -> "a", "ouf" -> 123)
       val b = Map("id" -> "b", "bouf" -> "321")
@@ -141,7 +148,7 @@ class CollectionSpec
 
     "Update existing values -> WrongPattern" in {
 
-      store.createUniqueIndex("id").await()
+      store.createIndex("id", unique = true).await()
 
       val b = Map("id" -> "b", "bouf" -> "321")
 
@@ -160,7 +167,7 @@ class CollectionSpec
 
     "Update non-existing values" in {
 
-      store.createUniqueIndex("id").await()
+      store.createIndex("id", unique = true).await()
 
       val a = Map("id" -> "a", "ouf" -> 123)
 
@@ -190,8 +197,8 @@ class CollectionSpec
 
     "Index on arrays / find on index elements /Append" in {
 
-      store.createUniqueIndex("id").await()
-      store.createUniqueIndex("ids").await()
+      store.createIndex("id", unique = true).await()
+      store.createIndex("ids", unique = true).await()
 
       val x = Map("id" -> "a", "ids" -> Seq(randomId))
       val y = Map("id" -> "b", "ids" -> Seq(randomId))
@@ -226,7 +233,7 @@ class CollectionSpec
     }
 
     "LoadOrCreate" in {
-      store.createUniqueIndex("idx")
+      store.createIndex("idx", unique = true)
 
       val x1 = store.where("idx" -> 1).default(Map("idx" -> 1, "name" -> "apan1", "yo" -> "da")).loadOrCreate.await()
       val x2 = store.where("idx" -> 2).default(Map("idx" -> 2, "name" -> "apan2", "yo" -> "da")).loadOrCreate.await()

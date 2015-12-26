@@ -2,17 +2,15 @@ package se.gigurra.franklin.mongoimpl
 
 import reactivemongo.api.collections.bson.BSONCollection
 import reactivemongo.api.commands.bson.DefaultBSONCommandError
-import reactivemongo.api.commands.{WriteError, CommandError, WriteResult}
+import reactivemongo.api.commands.{CommandError, WriteResult}
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.{BSONLong, BSONDocument}
+import reactivemongo.bson.{BSONDocument, BSONLong}
 import reactivemongo.core.errors.DatabaseException
 import se.gigurra.franklin.Collection.Data
 import se.gigurra.franklin._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.Future
 
 /**
   * Created by johan on 2015-12-24.
@@ -21,8 +19,8 @@ case class MongoCollection(collection: BSONCollection) extends Collection {
 
   import MongoCollection._
 
-  override def createUniqueIndex(fieldName: String): Future[Unit] = {
-    collection.indexesManager.ensure(Index(Seq(fieldName -> IndexType.Ascending), name = Some(fieldName), unique = true)).map(_ => ())
+  override def createIndex(fieldName: String, unique: Boolean): Future[Unit] = {
+    collection.indexesManager.ensure(Index(Seq(fieldName -> IndexType.Ascending), name = Some(fieldName), unique = unique)).map(_ => ())
   }
 
   override def update(selector: Data, data: Data, upsert: Boolean, expectVersion: Long): Future[Unit] = {
@@ -61,9 +59,9 @@ case class MongoCollection(collection: BSONCollection) extends Collection {
       if (n <= 0) {
         size(selectorWithoutVersion).flatMap { n =>
           if (n > 0) {
-            Future.failed(WrongDataVersion(s"Could not find the required item (v. ${expectVersion}) - another was found but with the wrong version for selector ${mongo2map(selectorWithoutVersion)}}"))
+            Future.failed(WrongDataVersion(s"Could not find the required item (v. $expectVersion) - another was found but with the wrong version for selector ${mongo2map(selectorWithoutVersion)}}"))
           } else {
-            Future.failed(ItemNotFound(s"Could not find the required item (v. ${expectVersion}) to update for selector ${mongo2map(selectorWithoutVersion)}}"))
+            Future.failed(ItemNotFound(s"Could not find the required item (v. $expectVersion) to update for selector ${mongo2map(selectorWithoutVersion)}}"))
           }
         }
       } else {
@@ -71,12 +69,12 @@ case class MongoCollection(collection: BSONCollection) extends Collection {
       }
     }, { message =>
       if (upsert && expectVersion != -1L) {
-        Future.failed(WrongDataVersion(s"upsert && expectVersion != -1L: Could not find the required item (v. ${expectVersion}) - another was found but with the wrong version for selector ${mongo2map(selectorWithoutVersion)}}, ${message}"))
+        Future.failed(WrongDataVersion(s"upsert && expectVersion != -1L: Could not find the required item (v. $expectVersion) - another was found but with the wrong version for selector ${mongo2map(selectorWithoutVersion)}}, $message"))
       } else {
         if (upsert)
-          Future.failed(ItemAlreadyExists(s"Can't create item (v. ${expectVersion}) for selector ${mongo2map(selectorWithoutVersion)}} as another item with the same unique keys exist: ${message}"))
+          Future.failed(ItemAlreadyExists(s"Can't create item (v. $expectVersion) for selector ${mongo2map(selectorWithoutVersion)}} as another item with the same unique keys exist: $message"))
         else
-          Future.failed(ItemNotFound(s"Could not find the required item (v. ${expectVersion}) to update for selector ${mongo2map(selectorWithoutVersion)}}, ${message}"))
+          Future.failed(ItemNotFound(s"Could not find the required item (v. $expectVersion) to update for selector ${mongo2map(selectorWithoutVersion)}}, $message"))
       }
     })
   }
@@ -181,9 +179,9 @@ case class MongoCollection(collection: BSONCollection) extends Collection {
         if (n <= 0) {
           size(selectorWithoutVersion).flatMap { n =>
             if (n > 0) {
-              Future.failed(WrongDataVersion(s"Could not find the required item (v. ${expectVersion}) - another was found but with the wrong version for selector ${mongo2map(selectorWithoutVersion)}}"))
+              Future.failed(WrongDataVersion(s"Could not find the required item (v. $expectVersion) - another was found but with the wrong version for selector ${mongo2map(selectorWithoutVersion)}}"))
             } else {
-              Future.failed(ItemNotFound(s"Could not find the required item (v. ${expectVersion}) to update for selector ${mongo2map(selectorWithoutVersion)}}"))
+              Future.failed(ItemNotFound(s"Could not find the required item (v. $expectVersion) to update for selector ${mongo2map(selectorWithoutVersion)}}"))
             }
           }
         } else {

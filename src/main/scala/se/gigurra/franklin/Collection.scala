@@ -11,7 +11,7 @@ import scala.language.implicitConversions
   */
 trait Collection {
 
-  def createUniqueIndex(fieldName: String): Future[Unit]
+  def createIndex(fieldName: String, unique: Boolean): Future[Unit]
 
   def find(selector: Data): Future[Seq[Item]]
 

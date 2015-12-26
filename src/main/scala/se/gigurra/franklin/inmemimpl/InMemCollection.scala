@@ -16,8 +16,8 @@ case class InMemCollection() extends Collection {
 
   val impl = InMemCollectionImpl()
 
-  override def createUniqueIndex(fieldName: String): Future[Unit] =
-    Future(impl.createUniqueIndex(fieldName))
+  override def createIndex(fieldName: String, unique: Boolean): Future[Unit] =
+    Future(impl.createIndex(fieldName, unique))
 
   override def update(selector: Data, data: Data, upsert: Boolean, expectVersion: Long): Future[Unit] =
     Future(impl.update(selector, data, upsert, expectVersion))
@@ -59,9 +59,14 @@ case class InMemCollectionImpl() {
 
   val storedData = new mutable.HashSet[Item]
   val uniqueIndices = new mutable.HashSet[String]
+  val performanceIndices = new mutable.HashSet[String]
 
-  def createUniqueIndex(fieldName: String): Unit = synchronized {
-    uniqueIndices += fieldName
+  def createIndex(fieldName: String, unique: Boolean): Unit = synchronized {
+    if (unique) {
+      uniqueIndices += fieldName
+    } else {
+      performanceIndices += fieldName
+    }
   }
 
   def update(selector: Data,
@@ -156,11 +161,11 @@ case class InMemCollectionImpl() {
 
   def deleteAllItems(): Unit = synchronized {
     storedData.clear()
-
   }
 
   def deleteAllIndices(): Unit = synchronized {
     uniqueIndices.clear()
+    performanceIndices.clear()
   }
 
   def deleteItem(selector: Data, expectVersion: Long): Unit = synchronized {
@@ -178,10 +183,11 @@ case class InMemCollectionImpl() {
 
   def deleteIndex(index: String): Unit = {
     uniqueIndices -= index
+    performanceIndices -= index
   }
 
   def indices: Seq[String] = synchronized {
-    uniqueIndices.toArray.toSeq
+    (uniqueIndices ++ performanceIndices).toArray.toSeq
   }
 
 }
