@@ -110,14 +110,14 @@ case class InMemCollectionImpl() {
   }
 
   def create(data: Data, version: Long = 1L): Unit = synchronized {
-    find(data) match {
+    find(data, matchOnAnyUnique = true) match {
       case Seq() => storedData += Item(data, version)
       case items => throw ItemAlreadyExists(s"Item already exists according to specified indices ($uniqueIndices), data: \n$data")
     }
   }
 
-  def find(selector: Data): Seq[Item] = synchronized {
-    storedData.filter(Match(selector, _, uniqueIndices) == Correct).toSeq
+  def find(selector: Data, matchOnAnyUnique: Boolean = false): Seq[Item] = synchronized {
+    storedData.filter(Match(selector, _, if (matchOnAnyUnique) uniqueIndices else Set.empty) == Correct).toSeq
   }
 
   def loadOrCreate(selector: Data, ctor: () => Data): Item = synchronized {

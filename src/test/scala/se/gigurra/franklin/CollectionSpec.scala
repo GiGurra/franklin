@@ -96,6 +96,18 @@ class CollectionSpec
 
     }
 
+    "Find by multiple parameters" in {
+
+      store.createIndex("id", unique = true).await()
+
+      val a = Map("id" -> "a", "somedata" -> 1)
+
+      store.create(a).await()
+
+      store.find("id" -> "a", "somedata" -> 2).await().size shouldBe 0
+
+    }
+
     "find some items" in {
 
       store.createIndex("id", unique = true).await()
