@@ -32,12 +32,16 @@ val provider: Store = Franklin.loadInMemory()
 
 ```scala
 val collection: Collection = provider.getOrCreate("test_objects")
+// If you're sure to use mongodb, you can cast this to a 
+// *case class MongoCollection(collection: BSONCollection)*
+// and access the underlying collection directly
 ```
 
 ### Create some indices
 
 ```scala
-
+val op1: Future[Unit] = store.createIndex("guid", unique = true)
+val op2: Future[Unit] = store.createIndex("items", unique = false)
 ```
 
 ### Store some data
