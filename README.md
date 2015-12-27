@@ -32,9 +32,10 @@ val provider: Store = Franklin.loadInMemory()
 
 ```scala
 val collection: Collection = provider.getOrCreate("test_objects")
-// If you're sure to use mongodb, you can cast this to a 
+// If you're sure to use mongodb or want to extend Franklin 
+// functionality, you can cast this to a 
 // *case class MongoCollection(collection: BSONCollection)*
-// and access the underlying collection directly
+// and access the underlying collection directly.
 ```
 
 ### Create some indices
