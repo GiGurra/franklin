@@ -48,7 +48,8 @@ val op2: Future[Unit] = store.createIndex("items", unique = false)
 
 ```scala
 
-store.createIndex("id", unique = true).await()
+// Assuming having previously done:
+// store.createIndex("id", unique = true)
 
 val a = Map("id" -> "a", "somedata" -> 1)
 val b = Map("id" -> "b", "somedata" -> 1)
@@ -84,6 +85,8 @@ val data2: Future[Seq[Item]] = collection.where(query).find
 
 Per document updates completely replace the previous content. They are atomic - per mongodb design (as is the franklin in-memory implementation).
 
+All updates respect unique index constraints and will return failing futures if the required conditions are not met.
+
 ```scala
 
 // You specify the item to replace, its new data, if upsert (create new if missing), and the expected version.
@@ -99,9 +102,25 @@ val op2: Future[Unit] = store.where("id" -> "b").update(Map("id" -> "b", "ouf" -
 
 ### Append some data
 
+You can also append data atomically to a document without having to replace the entire object/document. This is currently implemented in Franklin for Seq[..] and Set[..] fields. If you want more advanced append logic you can always throw me a pull request or just store the appended data in an entirely new document and use indexing or performance.
+
+Appended entries respect unique index constraints and will return failing futures if the required conditions are not met.
+
 ```scala
 
+// Assuming somewhere previously
+// store.createIndex("id", unique = true)
+// store.createIndex("ids", unique = true)
+
+val op1: Future[Unit] = store.where("id" -> "a").default(a).append("ids" -> Seq(1, 2, 3))
+val op2: Future[Unit] = store.where("id" -> "b").default(b).append("ids" -> Seq(4, 5, 6))
+val op3: Future[Unit] = store.where("id" -> "b").default(b).append("ids" -> Seq(1, 2)) // Will fail
+
 ```
+
+### Atomic load-or-create
+
+
 
 ### Wipe everything
 
