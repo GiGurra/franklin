@@ -10,7 +10,7 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
 
-class CollectionSpec
+class FranklinSpec
   extends WordSpec
   with MockitoSugar
   with Matchers
