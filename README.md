@@ -8,7 +8,7 @@ Franklin was initially created to support [valhalla-game](https://github.com/sai
 
 Also see [Franklin-Heisenberg](https://github.com/gigurra/franklin-heisenberg-bridge)
 
-At this point Franklin doesn't do any kind of authentication, so you better run him on a secure net or only talk to mongo on loopback!
+Franklin doesn't do any kind of authentication, so you better use him on a secure net or only talk to mongo on loopback!
 
 
 ## Examples
