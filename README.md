@@ -104,7 +104,7 @@ val op2: Future[Unit] = collection.where("id" -> "b").update(Map("id" -> "b", "o
 
 You can also append data atomically to a document without having to replace the entire object/document. This is currently implemented in Franklin for Seq[..] and Set[..] fields. If you want more advanced append logic you can always throw me a pull request or just store the appended data in an entirely new document and use indexing or performance.
 
-Appended entries respect unique index constraints and will return failing futures if the required conditions are not met. The *default* is an expression from () => Map[String, Any] used when no document/object matching your search criteria exists.
+Appended entries respect unique index constraints and will return failing futures if the required conditions are not met. The *default* is an expression from () => Map[String, Any] (or just pass by name expr => .., Franklin supports either)  used when no document/object matching your search criteria exists.
 
 Version numbers are currently not supported for append operations, but append operations themselves are atomic and will complete without destroying any previous or concurrent modifications.
 
@@ -125,9 +125,9 @@ val op3: Future[Unit] = collection.where("id" -> "b").default(b).append("ids" ->
 
 ### Atomic load-or-create
 
-
 ```scala
- val op: Future[Item] = collection.
+// *default* works the same as it does for append operations
+val op: Future[Item] = collection.where("id" -> "a").default(Map("id" -> "a", "name" -> "monkey", "yo" -> "da")).loadOrCreate
 ```
 
 
