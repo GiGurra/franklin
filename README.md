@@ -68,6 +68,16 @@ val bOp2: Future[Unit] = store.create(b)
 
 ```scala
 
+// Either access the data with raw 'select-like' statements/filters
+val data1: Future[Seq[Item]] = collection.where("id" -> "a", "somedata" -> 1) // arbitrary number of statements/filters
+
+// Or pass in a map
+val query = Map("id" -> "a")
+val data2: Future[Seq[Item]] = collection.where(query) // arbitrary number of statements/filters
+
+// An Item is:
+case class Item(data: Map[String, Any], version: Long)
+
 ```
 
 ### Update some data
