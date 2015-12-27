@@ -11,6 +11,8 @@ Also see [Franklin-Heisenberg](https://github.com/gigurra/franklin-heisenberg-br
 Franklin doesn't do any kind of authentication, so you better use him on a secure net or only talk to mongo on loopback!
 
 
+## Examples
+
 ### What you need
 
 In your build.sbt:
