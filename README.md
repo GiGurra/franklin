@@ -93,7 +93,7 @@ Per document completely replace the previous content. They are also atomic - per
 val op1: Future[Unit] = store.where("id" -> "a").update(Map("id" -> "a", "ouf" -> 3321), upsert = false, expectVersion = 3)
 
 // To ignore the data version & invite race conditions - omit the expectVersion parameter or set it to -1
-val op2: Future[Unit] = store.where("id" -> "a").update(Map("id" -> "b", "ouf" -> 123))
+val op2: Future[Unit] = store.where("id" -> "b").update(Map("id" -> "b", "ouf" -> 123))
 
 ```
 
