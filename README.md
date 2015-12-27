@@ -31,7 +31,7 @@ val provider: Store = Franklin.loadInMemory()
 ### Create a collection
 
 ```scala
-val collection: Collection = provider.getOrCreate("test_objects")
+val collection: Collection = provider.getOrCreate("test_document")
 // If you want to add some more mongodb magic you can cast this to a 
 // *case class MongoCollection(collection: BSONCollection)*
 // and access the underlying reactivemongo collection directly.
@@ -57,7 +57,7 @@ val b = Map("id" -> "b", "somedata" -> 1)
 val aOp: Future[Unit] = collection.create(a)
 val bOp: Future[Unit] = collection.create(b)
 
-// Trying to create the same object again
+// Trying to create the same document again
 // with a unique index conflict will eventually
 // complete the returned future with an 
 // ItemAlreadyExists exception.
@@ -102,9 +102,9 @@ val op2: Future[Unit] = collection.where("id" -> "b").update(Map("id" -> "b", "o
 
 ### Append some data
 
-You can also append data atomically to a document without having to replace the entire object/document. This is currently implemented in Franklin for Seq[..] and Set[..] fields. If you want more advanced append logic you can always throw me a pull request or just store the appended data in an entirely new document and use indexing or performance.
+You can also append data atomically to a document without having to replace the entire document. This is currently implemented in Franklin for Seq[..] and Set[..] fields. If you want more advanced append logic you can always throw me a pull request or just store the appended data in an entirely new document and use indexing or performance.
 
-Appended entries respect unique index constraints and will return failing futures if the required conditions are not met. The *default* is an expression from () => Map[String, Any] (or just pass by name expr => .., Franklin supports either)  used when no document/object matching your search criteria exists.
+Appended entries respect unique index constraints and will return failing futures if the required conditions are not met. The *default* is an expression from () => Map[String, Any] (or just pass by name expr => .., Franklin supports either)  used when no document matching your search criteria exists.
 
 Version numbers are currently not supported for append operations, but append operations themselves are atomic and will complete without destroying any previous or concurrent modifications.
 
@@ -116,7 +116,7 @@ Version numbers are currently not supported for append operations, but append op
 
 val op1: Future[Unit] = collection.where("id" -> "a").default(a).append("ids" -> Seq(1, 2, 3))
 val op2: Future[Unit] = collection.where("id" -> "b").default(b).append("ids" -> Seq(4, 5, 6))
-// Will fail since the "ids" field is uniquely indexed and the "id"->"a" object's "ids"
+// Will fail since the "ids" field is uniquely indexed and the "id"->"a" document's "ids"
 // field contains one or more of these elements. Operations are atomic and completed entirely
 // or not at all, so '99' will NOT be added to the "id -> "b" document
 val op3: Future[Unit] = collection.where("id" -> "b").default(b).append("ids" -> Seq(99, 1, 2))
