@@ -1,6 +1,6 @@
 # Franklin
 
-.. is you personal scala librarian API. He stores and finds the stuff you need, either to/from MongoDB for production purposes, or in-memory for testing. 
+.. is you personal scala librarian API. He stores and finds the stuff you need, either to/from MongoDB for production purposes, or in-memory for testing.  Franklin keeps a version number on each item stored in his collections - He is CAS capable and if a lot of people try to modify the same item at the *exact* same time, he will only let one of you do it.
 
 Franklin is just a wrapper for a subset of ReactiveMongo with the option to run in-memory instead of against a mongodb database. Franklin gets a few new APIs every now and then. Franklin APIs should never really expose any mongodb details. Franklin is just an asynchronous document/kv-storage using Futures.
 
@@ -33,6 +33,30 @@ val collection: Collection = provider.getOrCreate("test_objects")
 ```
 
 ### Create some indices
+
+```scala
+
+```
+
+### Store some data
+
+```scala
+
+```
+
+### Find some data
+
+```scala
+
+```
+
+### Update some data
+
+```scala
+
+```
+
+### Update some data
 
 ```scala
 
