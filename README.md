@@ -40,7 +40,7 @@ val collection: Collection = provider.getOrCreate("test_objects")
 ### Create some indices
 
 ```scala
-val op1: Future[Unit] = store.createIndex("guid", unique = true)
+val op1: Future[Unit] = store.createIndex("uuid", unique = true)
 val op2: Future[Unit] = store.createIndex("items", unique = false)
 ```
 
@@ -104,7 +104,9 @@ val op2: Future[Unit] = store.where("id" -> "b").update(Map("id" -> "b", "ouf" -
 
 You can also append data atomically to a document without having to replace the entire object/document. This is currently implemented in Franklin for Seq[..] and Set[..] fields. If you want more advanced append logic you can always throw me a pull request or just store the appended data in an entirely new document and use indexing or performance.
 
-Appended entries respect unique index constraints and will return failing futures if the required conditions are not met.
+Appended entries respect unique index constraints and will return failing futures if the required conditions are not met. The *default* is an expression from () => Map[String, Any] used when object matching your search criteria exists.
+
+Version numbers are currently not supported for append operations, but append operations themselves are atomic and will complete without destroying any previous or concurrent modifications.
 
 ```scala
 
