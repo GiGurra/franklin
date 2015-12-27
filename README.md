@@ -82,7 +82,7 @@ val data2: Future[Seq[Item]] = collection.where(query).find
 
 ### Update some data
 
-Per document completely replace the previous content. They are also atomic - per mongodb design (as is the franklin in-memory implementation).
+Per document updates completely replace the previous content. They are also atomic - per mongodb design (as is the franklin in-memory implementation).
 
 ```scala
 
