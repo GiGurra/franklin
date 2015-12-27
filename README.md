@@ -40,8 +40,8 @@ val collection: Collection = provider.getOrCreate("test_objects")
 ### Create some indices
 
 ```scala
-val op1: Future[Unit] = store.createIndex("uuid", unique = true)
-val op2: Future[Unit] = store.createIndex("items", unique = false)
+val op1: Future[Unit] = collection.createIndex("uuid", unique = true)
+val op2: Future[Unit] = collection.createIndex("items", unique = false)
 ```
 
 ### Store some data
@@ -49,19 +49,19 @@ val op2: Future[Unit] = store.createIndex("items", unique = false)
 ```scala
 
 // Assuming having previously done:
-// store.createIndex("id", unique = true)
+// collection.createIndex("id", unique = true)
 
 val a = Map("id" -> "a", "somedata" -> 1)
 val b = Map("id" -> "b", "somedata" -> 1)
 
-val aOp: Future[Unit] = store.create(a)
-val bOp: Future[Unit] = store.create(b)
+val aOp: Future[Unit] = collection.create(a)
+val bOp: Future[Unit] = collection.create(b)
 
 // Trying to create the same object again
 // with a unique index conflict will eventually
 // complete the returned future with an 
 // ItemAlreadyExists exception.
-val bOp2: Future[Unit] = store.create(b)
+val bOp2: Future[Unit] = collection.create(b)
 
 ```
 
@@ -93,10 +93,10 @@ All updates respect unique index constraints and will return failing futures if 
 // The expectVersion is the version you expect the previously stored data to have. If you specify the wrong version,
 // The returned future will eventually complete with an exception (probably a WrongDataVersion exception)
 // The starting version number when they're first created in the database is 1
-val op1: Future[Unit] = store.where("id" -> "a").update(Map("id" -> "a", "ouf" -> 3321), upsert = false, expectVersion = 3)
+val op1: Future[Unit] = collection.where("id" -> "a").update(Map("id" -> "a", "ouf" -> 3321), upsert = false, expectVersion = 3)
 
 // To ignore the data version & invite race conditions - omit the expectVersion parameter or set it to -1
-val op2: Future[Unit] = store.where("id" -> "b").update(Map("id" -> "b", "ouf" -> 123))
+val op2: Future[Unit] = collection.where("id" -> "b").update(Map("id" -> "b", "ouf" -> 123))
 
 ```
 
@@ -104,27 +104,31 @@ val op2: Future[Unit] = store.where("id" -> "b").update(Map("id" -> "b", "ouf" -
 
 You can also append data atomically to a document without having to replace the entire object/document. This is currently implemented in Franklin for Seq[..] and Set[..] fields. If you want more advanced append logic you can always throw me a pull request or just store the appended data in an entirely new document and use indexing or performance.
 
-Appended entries respect unique index constraints and will return failing futures if the required conditions are not met. The *default* is an expression from () => Map[String, Any] used when object matching your search criteria exists.
+Appended entries respect unique index constraints and will return failing futures if the required conditions are not met. The *default* is an expression from () => Map[String, Any] used when no document/object matching your search criteria exists.
 
 Version numbers are currently not supported for append operations, but append operations themselves are atomic and will complete without destroying any previous or concurrent modifications.
 
 ```scala
 
 // Assuming somewhere previously
-// store.createIndex("id", unique = true)
-// store.createIndex("ids", unique = true)
+// collection.createIndex("id", unique = true)
+// collection.createIndex("ids", unique = true)
 
-val op1: Future[Unit] = store.where("id" -> "a").default(a).append("ids" -> Seq(1, 2, 3))
-val op2: Future[Unit] = store.where("id" -> "b").default(b).append("ids" -> Seq(4, 5, 6))
+val op1: Future[Unit] = collection.where("id" -> "a").default(a).append("ids" -> Seq(1, 2, 3))
+val op2: Future[Unit] = collection.where("id" -> "b").default(b).append("ids" -> Seq(4, 5, 6))
 // Will fail since the "ids" field is uniquely indexed and the "id"->"a" object's "ids"
 // field contains one or more of these elements. Operations are atomic and completed entirely
 // or not at all, so '99' will NOT be added to the "id -> "b" document
-val op3: Future[Unit] = store.where("id" -> "b").default(b).append("ids" -> Seq(99, 1, 2))
+val op3: Future[Unit] = collection.where("id" -> "b").default(b).append("ids" -> Seq(99, 1, 2))
 
 ```
 
 ### Atomic load-or-create
 
+
+```scala
+ val op: Future[Item] = collection.
+```
 
 
 ### Wipe everything
@@ -132,6 +136,6 @@ val op3: Future[Unit] = store.where("id" -> "b").default(b).append("ids" -> Seq(
 Note: These operations are NOT atomic
 
 ```scala
- val op1: Future[Unit] = store.wipeItems().yesImSure()
- val op2: Future[Unit] = store.wipeIndices().yesImSure()
+ val op1: Future[Unit] = collection.wipeItems().yesImSure()
+ val op2: Future[Unit] = collection.wipeIndices().yesImSure()
 ```
