@@ -114,7 +114,10 @@ Appended entries respect unique index constraints and will return failing future
 
 val op1: Future[Unit] = store.where("id" -> "a").default(a).append("ids" -> Seq(1, 2, 3))
 val op2: Future[Unit] = store.where("id" -> "b").default(b).append("ids" -> Seq(4, 5, 6))
-val op3: Future[Unit] = store.where("id" -> "b").default(b).append("ids" -> Seq(1, 2)) // Will fail
+// Will fail since the "ids" field is uniquely indexed and the "id"->"a" object's "ids"
+// field contains one or more of these elements. Operations are atomic and completed entirely
+// or not at all, so '99' will NOT be added to the "id -> "b" document
+val op3: Future[Unit] = store.where("id" -> "b").default(b).append("ids" -> Seq(99, 1, 2))
 
 ```
 
