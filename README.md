@@ -4,7 +4,7 @@
 
 Franklin is just a wrapper for a subset of ReactiveMongo with the option to run in-memory instead of against a mongodb database. Franklin gets a few new APIs every now and then. Franklin APIs should never really expose any mongodb details. Franklin is just an asynchronous document/kv-storage using Futures.
 
-Franklin was initially created to support [valhalla-game](https://github.com/saiaku-gaming/valhalla-server) - and has been extended and tested as needed. It was not really meant for anyone else to use, but go ahead (MIT licensed) if you want to. 
+Franklin was initially created to support [valhalla-game](https://github.com/saiaku-gaming/valhalla-server) - and has been extended and tested as needed. Go ahead and use it for whatever purpose you want (MIT licensed) .. if you want to :). 
 
 Also see [Franklin-Heisenberg](https://github.com/gigurra/franklin-heisenberg-bridge)
 
