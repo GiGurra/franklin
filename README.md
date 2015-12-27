@@ -48,6 +48,20 @@ val op2: Future[Unit] = store.createIndex("items", unique = false)
 
 ```scala
 
+store.createIndex("id", unique = true).await()
+
+val a = Map("id" -> "a", "somedata" -> 1)
+val b = Map("id" -> "b", "somedata" -> 1)
+
+val aOp: Future[Unit] = store.create(a)
+val bOp: Future[Unit] = store.create(b)
+
+// Trying to create the same object again
+// with a unique index conflict will eventually
+// complete the returned future with an 
+// ItemAlreadyExists exception.
+val bOp2: Future[Unit] = store.create(b)
+
 ```
 
 ### Find some data
