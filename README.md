@@ -83,9 +83,7 @@ val data2: Future[Seq[Item]] = collection.where(query).find
 
 ### Update some documents
 
-Per document updates completely replace the previous content. They are atomic - per mongodb design (as is the franklin in-memory implementation).
-
-All updates respect unique index constraints and will return failing futures if the required conditions are not met.
+Per document updates completely replace the previous content. They are atomic - per mongodb design (as is the franklin in-memory implementation). All updates respect unique index constraints or return failing futures.
 
 ```scala
 
