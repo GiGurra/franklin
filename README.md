@@ -76,7 +76,7 @@ val query = Map("id" -> "a")
 val data2: Future[Seq[Item]] = collection.where(query).find // arbitrary number of statements/filters
 
 // An Item is:
-case class Item(data: Map[String, Any], version: Long)
+// case class Item(data: Map[String, Any], version: Long)
 
 ```
 
