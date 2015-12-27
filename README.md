@@ -144,13 +144,6 @@ Note: These operations are NOT atomic
 Types are mapped from Scala in the following way:
 
 ```scala
-  def map2mongo(map: Map[String, Any]): BSONDocument = {
-    BSONDocument(map
-      .map(pair => pair._1 -> any2MongoValue(pair._2))
-      .toSeq
-    )
-  }
-  
   def any2MongoValue(value: Any): BSONValue = {
     value match {
       case value: Byte => BSONInteger(value)
@@ -169,21 +162,11 @@ Types are mapped from Scala in the following way:
       case x => throw new Mongo2MapException(s"Don't know how to convert $x to a BSONValue")
     }
   }
-  
 ```
 
 ### Supported types MongoDB -> Scala
 
 ```scala
-
-  def mongo2map(doc: BSONDocument): Map[String, Any] = {
-    doc
-      .elements
-      .filter(_._1 != "_id")
-      .map(pair => pair._1 -> mongoValue2Any(pair._2))
-      .toMap
-  }
-  
   def mongoValue2Any(value: BSONValue): Any = {
     value match {
       case value: BSONArray => value.values.toSeq.map(mongoValue2Any)
