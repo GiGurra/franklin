@@ -127,6 +127,8 @@ val op3: Future[Unit] = store.where("id" -> "b").default(b).append("ids" -> Seq(
 
 ### Wipe everything
 
+Note: These operations are NOT atomic
+
 ```scala
  val op1: Future[Unit] = store.wipeItems().yesImSure()
  val op2: Future[Unit] = store.wipeIndices().yesImSure()
