@@ -34,7 +34,7 @@ val provider: Store = Franklin.loadInMemory()
 val collection: Collection = provider.getOrCreate("test_objects")
 // If you want to add some more mongodb magic you can cast this to a 
 // *case class MongoCollection(collection: BSONCollection)*
-// and access the underlying collection directly.
+// and access the underlying reactivemongo collection directly.
 ```
 
 ### Create some indices
