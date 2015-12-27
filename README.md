@@ -21,7 +21,7 @@ In your build.sbt:
 ```
 In your code:
 ```scala
-import se.gigurra.franklin.Franklin
+import se.gigurra.franklin._
 
 val provider: Store = Franklin.loadInMemory()
  // or Franklin.loadMongo(database: String = "local", nodes: Seq[String] = Seq("127.0.0.1:27017"))
