@@ -44,7 +44,7 @@ val op1: Future[Unit] = collection.createIndex("uuid", unique = true)
 val op2: Future[Unit] = collection.createIndex("items", unique = false)
 ```
 
-### Store some data
+### Create some documents
 
 ```scala
 
@@ -65,7 +65,7 @@ val bOp2: Future[Unit] = collection.create(b)
 
 ```
 
-### Find some data
+### Find some documents
 
 ```scala
 
@@ -81,7 +81,7 @@ val data2: Future[Seq[Item]] = collection.where(query).find
 
 ```
 
-### Update some data
+### Update some documents
 
 Per document updates completely replace the previous content. They are atomic - per mongodb design (as is the franklin in-memory implementation).
 
