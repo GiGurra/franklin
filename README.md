@@ -1,6 +1,6 @@
 # Franklin
 
-.. is you personal scala librarian. He stores and finds the stuff you need, either to/from MongoDB for production purposes, or in-memory for testing.  Franklin keeps a version number on each item stored in his collections - He is CAS capable and if a lot of people try to modify the same item at the *exact* same time, he will only let one of you do it. Every time an item is updated - its version number is automatically incremented.
+.. stores and finds the stuff you need, either to/from MongoDB for production purposes, or in-memory for testing.  Franklin keeps a version number on each item stored in his collections - He is CAS capable and if a lot of people try to modify the same item at the *exact* same time, he will only let one of you do it. Every time an item is updated - its version number is automatically incremented.
 
 Franklin is just a wrapper for a subset of ReactiveMongo with the option to run in-memory instead of against a mongodb database. Franklin gets a few new APIs every now and then. Franklin is just an asynchronous document/kv-storage using Futures. As every operation returns in a future, you can run them in parallell or sequence (e.g. in a for comprehension or async-await, whatever floats your boat) and/or fork/join at any point.
 
