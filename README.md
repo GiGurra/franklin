@@ -141,7 +141,7 @@ Note: These operations are NOT atomic
 
 ### Supported types Scala -> MongoDB
 
-Types are mapped from Scala in the following way:
+Types are internally mapped from Scala in the following way:
 
 ```scala
   def any2MongoValue(value: Any): BSONValue = {
@@ -165,6 +165,8 @@ Types are mapped from Scala in the following way:
 ```
 
 ### Supported types MongoDB -> Scala
+
+Types are internally mapped from Reactivemongo in the following way:
 
 ```scala
   def mongoValue2Any(value: BSONValue): Any = {
