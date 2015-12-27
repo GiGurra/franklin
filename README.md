@@ -38,3 +38,9 @@ val collection: Collection = provider.getOrCreate("test_objects")
 
 ```
 
+### Wipe everything
+
+```scala
+ val op1: Future[Unit] = store.wipeItems().yesImSure()
+ val op2: Future[Unit] = store.wipeIndices().yesImSure()
+```
