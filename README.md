@@ -24,7 +24,7 @@ In your code:
 import se.gigurra.franklin._
 
 val provider: Store = Franklin.loadInMemory()
- // or Franklin.loadMongo(database: String = "local", nodes: Seq[String] = Seq("127.0.0.1:27017"))
+ // or Franklin.loadMongo(database: String = "local", nodes: Seq[String] = Seq("127.0.0.1:27017"), codec: BsonCodec = DefaultBsonCodec)
 
 ```
 
