@@ -171,7 +171,7 @@ Types are internally mapped from Reactivemongo in the following way:
 ```scala
   def mongoValue2Any(value: BSONValue): Any = {
     value match {
-      case value: BSONArray => value.values.toSeq.map(mongoValue2Any)
+      case value: BSONArray => value.values.map(mongoValue2Any)
       case value: BSONBinary => throw new Mongo2MapException(s"Don't know how to convert ${classOf[BSONBinary]} to an Any")
       case value: BSONBoolean => value.value
       case value: BSONDBPointer => throw new Mongo2MapException(s"Don't know how to convert ${classOf[BSONDBPointer]} to an Any")
