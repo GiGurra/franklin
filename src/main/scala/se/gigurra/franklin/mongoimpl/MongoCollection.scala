@@ -15,9 +15,10 @@ import scala.concurrent.Future
 /**
   * Created by johan on 2015-12-24.
   */
-case class MongoCollection(collection: BSONCollection) extends Collection {
+case class MongoCollection(collection: BSONCollection, codec: BsonCodec) extends Collection {
 
   import MongoCollection._
+  import codec._
 
   override def createIndex(fieldName: String, unique: Boolean): Future[Unit] = {
     collection.indexesManager.ensure(Index(Seq(fieldName -> IndexType.Ascending), name = Some(fieldName), unique = unique)).map(_ => ())

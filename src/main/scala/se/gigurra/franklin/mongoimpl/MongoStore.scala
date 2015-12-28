@@ -16,7 +16,7 @@ import scala.util.{Failure, Success, Try}
 /**
   * Created by johan on 2015-12-24.
   */
-case class MongoStore(dbName: String, mongo: MongoDb) extends Store {
+case class MongoStore(dbName: String, mongo: MongoDb, codec: BsonCodec) extends Store {
 
   implicit val timeout = Duration.apply(4, TimeUnit.SECONDS)
   private val logger = Logger.getLogger(this.getClass.getName)
@@ -36,7 +36,7 @@ case class MongoStore(dbName: String, mongo: MongoDb) extends Store {
   }
 
   override def getOrCreate(name: String): Collection = {
-    MongoCollection(db[BSONCollection](name))
+    MongoCollection(db[BSONCollection](name), codec)
   }
 
   override def close(): Unit = {
