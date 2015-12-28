@@ -162,7 +162,7 @@ trait BsonCodec {
 }
 ```
 
-The default bson codec, aptly named DefaultBsonCodec - selected automatically if you do not chose once yourself, is defined as follows
+The default bson codec, aptly named DefaultBsonCodec - selected automatically if you do explicitly specify one, is defined as follows
 
 ```scala
 case object DefaultBsonCodec extends BsonCodec {
