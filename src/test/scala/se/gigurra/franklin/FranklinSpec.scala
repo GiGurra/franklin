@@ -25,9 +25,9 @@ class FranklinSpec
   val provider: Store = Franklin.loadInMemory()
   //val provider: Store = Franklin.loadMongo()
 
-  val store: Collection = provider.getOrCreate("tests")
+  val store: Collection = provider.getOrCreate("franklin_tests")
 
-  override def beforeAll(): Unit = {
+  override def beforeEach(): Unit = {
     store.wipeItems().yesImSure().await()
     store.wipeIndices().yesImSure().await()
   }

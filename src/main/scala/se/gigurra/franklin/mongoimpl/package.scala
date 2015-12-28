@@ -12,7 +12,7 @@ package object mongoimpl {
 
   def mongoValue2Any(value: BSONValue): Any = {
     value match {
-      case value: BSONArray => value.values.toSeq.map(mongoValue2Any)
+      case value: BSONArray => value.values.map(mongoValue2Any)
       case value: BSONBinary => throw new Mongo2MapException(s"Don't know how to convert ${classOf[BSONBinary]} to an Any")
       case value: BSONBoolean => value.value
       case value: BSONDBPointer => throw new Mongo2MapException(s"Don't know how to convert ${classOf[BSONDBPointer]} to an Any")
@@ -59,15 +59,12 @@ package object mongoimpl {
     doc
       .elements
       .filter(_._1 != "_id")
-      .map(pair => pair._1 -> mongoValue2Any(pair._2))
       .toMap
+      .mapValues(mongoValue2Any)
   }
 
   def map2mongo(map: Map[String, Any]): BSONDocument = {
-    BSONDocument(map
-      .map(pair => pair._1 -> any2MongoValue(pair._2))
-      .toSeq
-    )
+    BSONDocument(map.mapValues(any2MongoValue))
   }
 
   case class Mongo2MapException(message: String, cause: Throwable = null) extends FranklinException(message, cause)
