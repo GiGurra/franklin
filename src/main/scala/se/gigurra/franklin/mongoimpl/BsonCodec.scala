@@ -7,8 +7,8 @@ import reactivemongo.bson._
 import se.gigurra.franklin.FranklinException
 
 trait BsonCodec {
-  protected def mongoValue2Any(value: BSONValue): Any
-  protected def any2MongoValue(value: Any): BSONValue
+  def mongoValue2Any(value: BSONValue): Any
+  def any2MongoValue(value: Any): BSONValue
 
   def mongo2map(doc: BSONDocument): Map[String, Any] = {
     doc
@@ -25,7 +25,7 @@ trait BsonCodec {
 
 case object DefaultBsonCodec extends BsonCodec {
 
-  protected def mongoValue2Any(value: BSONValue): Any = {
+  def mongoValue2Any(value: BSONValue): Any = {
     value match {
       case value: BSONArray => value.values.map(mongoValue2Any)
       case value: BSONBoolean => value.value
@@ -53,7 +53,7 @@ case object DefaultBsonCodec extends BsonCodec {
     }
   }
 
-  protected def any2MongoValue(value: Any): BSONValue = {
+  def any2MongoValue(value: Any): BSONValue = {
     value match {
       case value: Byte => BSONInteger(value)
       case value: Short => BSONInteger(value)
