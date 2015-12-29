@@ -1,7 +1,9 @@
 package se.gigurra.franklin.mongoimpl
 
+import java.util.logging.Logger
+
 import reactivemongo.api.collections.bson.BSONCollection
-import reactivemongo.api.commands.bson.DefaultBSONCommandError
+import reactivemongo.api.commands.bson.{BSONFindAndModifyCommand, DefaultBSONCommandError}
 import reactivemongo.api.commands.{CommandError, WriteResult}
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONLong}
@@ -16,6 +18,8 @@ import scala.concurrent.Future
   * Created by johan on 2015-12-24.
   */
 case class MongoCollection(collection: BSONCollection, codec: BsonCodec) extends Collection {
+
+  val logger = Logger.getLogger(getClass.getName)
 
   import MongoCollection._
   import codec._
@@ -41,7 +45,7 @@ case class MongoCollection(collection: BSONCollection, codec: BsonCodec) extends
 
   override def create(data: Data): Future[Unit] = {
     val raw = map2mongo(data)
-    update(raw, raw, upsert = true, expectVersion = -1)
+    update(raw, raw, upsert = true, expectVersion = -1L)
   }
 
   private def update(selectorWithoutVersion: BSONDocument, data: BSONDocument, upsert: Boolean, expectVersion: Long): Future[Unit] = {
@@ -102,12 +106,38 @@ case class MongoCollection(collection: BSONCollection, codec: BsonCodec) extends
   }
 
   override def loadOrCreate(selector: Data, ctor: () => Data): Future[Item] = {
-    find(selector).flatMap {
+
+    val mongoSelector = map2mongo(selector)
+
+    find(mongoSelector).flatMap {
+
       case Seq() =>
-        val data = ctor()
-        update(selector, data, upsert = true).map(_ => Item(data))
-      case items => Future.successful(items.head)
+
+        val defaultValue = map2mongo(ctor()).add(VERSION -> 1L)
+        var attemptNo = 0
+
+        def atomicCreateOrStoreWithRetry(): Future[Item] = {
+          atomicCreateOrStore(mongoSelector, defaultValue).recoverWith {
+            case e => e.getCause match {
+              // Stupid: As per mongodb documentation - we should try this again if we get "duplicate key" errors..
+              case e2: CommandError if e2.code.contains(11000) =>
+                if (attemptNo == 0)
+                  logger.info(s"loadOrCreate failed on attempt number #$attemptNo (this is OK according to mongo docs)")
+                else // Someone is busy trying to delete this resource at the same time .. :S
+                  logger.warning(s"loadOrCreate failed on attempt number #$attemptNo (this is probably NOT OK according to mongo docs)")
+                attemptNo += 1
+                atomicCreateOrStoreWithRetry()
+            }
+          }
+        }
+
+        atomicCreateOrStoreWithRetry()
+
+
+      case items =>
+        Future.successful(items.head)
     }
+
   }
 
   override def size(selector: Data): Future[Int] = {
@@ -128,6 +158,11 @@ case class MongoCollection(collection: BSONCollection, codec: BsonCodec) extends
       case true => doAppend()
       case false => update(selector, defaultObject(), upsert = true).flatMap(_ => doAppend())
     }
+  }
+
+  private def find(mongoSelector: BSONDocument): Future[Seq[Item]] = {
+    val query = collection.find(mongoSelector, BSONDocument("_id" -> 0))
+    query.cursor[BSONDocument]().collect[Seq]().map(_.map(toItem))
   }
 
   private def size(mongoSelector: BSONDocument): Future[Int] = {
@@ -192,6 +227,23 @@ case class MongoCollection(collection: BSONCollection, codec: BsonCodec) extends
       uniqueConflictResult = { _ => Future(()) } // Cannot happen on remove
     )
 
+  }
+
+  private def atomicCreateOrStore(mongoSelector: BSONDocument, defaultValue: BSONDocument): Future[Item] = {
+
+    val command = BSONFindAndModifyCommand.Update(BSONDocument("$setOnInsert" -> defaultValue), fetchNewObject = true, upsert = true)
+
+    collection.findAndModify(mongoSelector, command, sort = None, fields = None).flatMap { op =>
+      op.result match {
+        case None =>
+          Future.failed(MongoCollection.GenericMongoError(s"collection.findAndModify returned empty ... bug???"))
+        case Some(result) =>
+          Future.successful(toItem(result))
+      }
+    }.recoverWith {
+      case e =>
+        Future.failed(MongoCollection.GenericMongoError(s"collection.findAndModify returned with exception: ${e.getMessage}", e))
+    }
   }
 
   private def isMongoIdIndex(index: String): Boolean = {

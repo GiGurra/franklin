@@ -253,6 +253,8 @@ class FranklinSpec
 
       store.find("idx" -> 1).await().head.data shouldBe Map("idx" -> 1, "name" -> "apan1", "yo" -> "da")
       store.find("idx" -> 2).await().head.data shouldBe Map("idx" -> 2, "name" -> "apan2", "yo" -> "da")
+      store.find("idx" -> 2).await().head.version shouldBe 1
+      store.find("idx" -> 1).await().head.version shouldBe 1
       store.size().await() shouldBe 2
     }
 
