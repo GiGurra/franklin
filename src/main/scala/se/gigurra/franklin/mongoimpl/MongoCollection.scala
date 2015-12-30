@@ -29,17 +29,6 @@ case class MongoCollection(collection: BSONCollection, codec: BsonCodec) extends
   }
 
   override def update(selector: Data, data: Data, upsert: Boolean, expectVersion: Long): Future[Unit] = {
-
-    // Failure cases:
-    // 1a. Passed wrong version (not found), upsert = false
-    //  -> Just fails
-    // 1b. Passed wrong version (not found), upsert = true
-    //  -> Tries to create and fails on unique index check
-    // 2a. Wrong pattern, upsert = false
-    //  -> Just fails
-    // 2b. Wrong pattern (not found), upsert = true
-    //  -> Tries to create and fails on unique index check
-
     update(map2mongo(selector), map2mongo(data), upsert, expectVersion)
   }
 
