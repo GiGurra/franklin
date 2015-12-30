@@ -22,8 +22,8 @@ class FranklinSpec
     def await(): T = Await.result(f, Duration.Inf)
   }
 
-  //val provider: Store = Franklin.loadInMemory()
-  val provider: Store = Franklin.loadMongo()
+  val provider: Store = Franklin.loadInMemory()
+  //val provider: Store = Franklin.loadMongo()
 
   val store: Collection = provider.getOrCreate("franklin_tests")
 
