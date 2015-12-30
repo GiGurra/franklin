@@ -22,8 +22,8 @@ class FranklinSpec
     def await(): T = Await.result(f, Duration.Inf)
   }
 
-  val provider: Store = Franklin.loadInMemory()
-  //val provider: Store = Franklin.loadMongo()
+  //val provider: Store = Franklin.loadInMemory()
+  val provider: Store = Franklin.loadMongo()
 
   val store: Collection = provider.getOrCreate("franklin_tests")
 
@@ -97,15 +97,12 @@ class FranklinSpec
     }
 
     "Find by multiple parameters" in {
-
       store.createIndex("id", unique = true).await()
 
       val a = Map("id" -> "a", "somedata" -> 1)
 
       store.create(a).await()
-
       store.find("id" -> "a", "somedata" -> 2).await().size shouldBe 0
-
     }
 
     "find some items" in {
@@ -128,7 +125,7 @@ class FranklinSpec
       store.createIndex("id", unique = true).await()
 
       val a = Map("id" -> "a", "ouf" -> 123)
-      val b = Map("id" -> "b", "bouf" -> "321")
+      val b = Map("id" -> "b", "bouf" -> Map("$bouf" -> 1))
 
       store.create(a).await()
       store.create(b).await()
@@ -207,6 +204,17 @@ class FranklinSpec
 
     }
 
+    "Create and delete escaped index" in {
+      store.createIndex("$123", unique = true).await()
+      store.createIndex(".123", unique = true).await()
+      store.createIndex("\\123", unique = true).await()
+      store.indices.await().size shouldBe 3
+      store.deleteIndex("$123")(YeahReally()).await()
+      store.deleteIndex(".123")(YeahReally()).await()
+      store.deleteIndex("\\123")(YeahReally()).await()
+      store.indices.await().size shouldBe 0
+    }
+
     "Index on arrays / find on index elements /Append" in {
 
       store.createIndex("id", unique = true).await()
@@ -214,14 +222,15 @@ class FranklinSpec
 
       val x = Map("id" -> "a", "ids" -> Seq(randomId))
       val y = Map("id" -> "b", "ids" -> Seq(randomId))
+      val z = Map("id" -> "c", "ids" -> Seq(randomId))
 
       store.create(x).await()
       store.create(y).await()
 
-
       store.where("id" -> "a").default(x).append("ids" -> Seq(1, 2, 3)).await()
       store.where("id" -> "a").default(x).append("ids" -> Seq(4, 5, 6)).await()
       store.where("id" -> "b").default(y).append("ids" -> Seq(7, 8, 9)).await()
+      store.where("id" -> "c").default(z).append("$ids" -> Seq(7, 8, 9)).await()
 
       Try(store.where("id" -> "b").default(y).append("ids" -> Seq(1, 2, 4)).await()) shouldBe an[Failure[_]]
 
@@ -241,6 +250,8 @@ class FranklinSpec
       store.find("ids" -> 8).await().head.data.get("id") shouldBe Some("b")
       store.find("ids" -> 9).await().size shouldBe 1
       store.find("ids" -> 9).await().head.data.get("id") shouldBe Some("b")
+
+      store.find("id" -> "c").await().head.data.get("$ids").get.asInstanceOf[Seq[_]].toSet shouldBe Set(7,8,9)
 
     }
 

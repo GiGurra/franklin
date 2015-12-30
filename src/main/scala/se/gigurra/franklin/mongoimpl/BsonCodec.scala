@@ -15,12 +15,13 @@ trait BsonCodec {
       .elements
       .filter(_._1 != "_id")
       .toMap
-      .mapValues(mongoValue2Any)
+      .map(pair => UnEscape(pair._1) -> mongoValue2Any(pair._2))
   }
 
   def map2mongo(map: Map[String, Any]): BSONDocument = {
-    BSONDocument(map.mapValues(any2MongoValue))
+    BSONDocument(map.map(pair => Escape(pair._1) -> any2MongoValue(pair._2)))
   }
+
 }
 
 case object DefaultBsonCodec extends BsonCodec {

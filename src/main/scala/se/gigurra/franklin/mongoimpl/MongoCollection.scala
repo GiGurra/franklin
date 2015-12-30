@@ -25,7 +25,7 @@ case class MongoCollection(collection: BSONCollection, codec: BsonCodec) extends
   import codec._
 
   override def createIndex(fieldName: String, unique: Boolean): Future[Unit] = {
-    collection.indexesManager.ensure(Index(Seq(fieldName -> IndexType.Ascending), name = Some(fieldName), unique = unique)).map(_ => ())
+    collection.indexesManager.ensure(Index(Seq(Escape(fieldName) -> IndexType.Ascending), name = Some(fieldName), unique = unique)).map(_ => ())
   }
 
   override def update(selector: Data, data: Data, upsert: Boolean, expectVersion: Long): Future[Unit] = {
@@ -130,7 +130,7 @@ case class MongoCollection(collection: BSONCollection, codec: BsonCodec) extends
   override def append(selector: Data, defaultObject: () => Data, kv: Seq[(String, Iterable[Any])]): Future[Unit] = {
 
     def doAppend(): Future[Unit] = {
-      val pushes = kv.map { case (k, v) => "$push" -> BSONDocument(k -> BSONDocument("$each" -> any2MongoValue(v))) }
+      val pushes = kv.map { case (k, v) => "$push" -> BSONDocument(Escape(k) -> BSONDocument("$each" -> any2MongoValue(v))) }
       val updates = BSONDocument(pushes).add("$inc" -> BSONDocument(VERSION -> 1L))
       val mongoSelector = map2mongo(selector)
 
