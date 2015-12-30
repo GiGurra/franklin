@@ -17,7 +17,7 @@ Franklin doesn't do any kind of authentication, so you better use him on a secur
 
 In your build.sbt:
 ```sbt
-.dependsOn(uri("git://github.com/GiGurra/franklin.git#0.1.8"))
+.dependsOn(uri("git://github.com/GiGurra/franklin.git#0.1.10"))
 ```
 In your code:
 ```scala
