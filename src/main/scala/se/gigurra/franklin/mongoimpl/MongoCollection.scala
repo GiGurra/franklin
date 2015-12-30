@@ -48,40 +48,34 @@ case class MongoCollection(collection: BSONCollection, codec: BsonCodec) extends
     update(raw, raw, upsert = true, expectVersion = -1L)
   }
 
-  private def update(selectorWithoutVersion: BSONDocument, data: BSONDocument, upsert: Boolean, expectVersion: Long): Future[Unit] = {
+  override def deleteItem(selector: Data, expectVersion: Long): Future[Unit] = {
+
+    val selectorWithoutVersion = map2mongo(selector)
 
     val mongoSelector =
       if (expectVersion != -1L) {
         selectorWithoutVersion.add(VERSION -> expectVersion)
-      }
-      else {
+      } else {
         selectorWithoutVersion
       }
 
-    val mongoUpdate = BSONDocument("$set" -> data, "$inc" -> BSONDocument(VERSION -> 1L))
-
-    writeOp(collection.update(mongoSelector, mongoUpdate, upsert = upsert), { n =>
-      if (n <= 0) {
-        size(selectorWithoutVersion).flatMap { n =>
-          if (n > 0) {
-            Future.failed(WrongDataVersion(s"Could not find the required item (v. $expectVersion) - another was found but with the wrong version for selector ${mongo2map(selectorWithoutVersion)}}"))
-          } else {
-            Future.failed(ItemNotFound(s"Could not find the required item (v. $expectVersion) to update for selector ${mongo2map(selectorWithoutVersion)}}"))
+    writeOp(collection.remove(mongoSelector),
+      updateCountResult = { n =>
+        if (n <= 0) {
+          sizeImpl(selectorWithoutVersion).flatMap { n =>
+            if (n > 0) {
+              Future.failed(WrongDataVersion(s"Could not find the required item (v. $expectVersion) - another was found but with the wrong version for selector ${mongo2map(selectorWithoutVersion)}}"))
+            } else {
+              Future.failed(ItemNotFound(s"Could not find the required item (v. $expectVersion) to update for selector ${mongo2map(selectorWithoutVersion)}}"))
+            }
           }
+        } else {
+          Future(())
         }
-      } else {
-        Future(())
-      }
-    }, { message =>
-      if (upsert && expectVersion != -1L) {
-        Future.failed(WrongDataVersion(s"upsert && expectVersion != -1L: Could not find the required item (v. $expectVersion) - another was found but with the wrong version for selector ${mongo2map(selectorWithoutVersion)}}, $message"))
-      } else {
-        if (upsert)
-          Future.failed(ItemAlreadyExists(s"Can't create item (v. $expectVersion) for selector ${mongo2map(selectorWithoutVersion)}} as another item with the same unique keys exist: $message"))
-        else
-          Future.failed(ItemNotFound(s"Could not find the required item (v. $expectVersion) to update for selector ${mongo2map(selectorWithoutVersion)}}, $message"))
-      }
-    })
+      },
+      uniqueConflictResult = { _ => Future(()) } // Cannot happen on remove
+    )
+
   }
 
   override def find(selector: Data): Future[Seq[Item]] = {
@@ -109,7 +103,7 @@ case class MongoCollection(collection: BSONCollection, codec: BsonCodec) extends
 
     val mongoSelector = map2mongo(selector)
 
-    find(mongoSelector).flatMap {
+    findImpl(mongoSelector).flatMap {
 
       case Seq() =>
 
@@ -141,7 +135,7 @@ case class MongoCollection(collection: BSONCollection, codec: BsonCodec) extends
   }
 
   override def size(selector: Data): Future[Int] = {
-    size(map2mongo(selector))
+    sizeImpl(map2mongo(selector))
   }
 
   override def append(selector: Data, defaultObject: () => Data, kv: Seq[(String, Iterable[Any])]): Future[Unit] = {
@@ -160,12 +154,56 @@ case class MongoCollection(collection: BSONCollection, codec: BsonCodec) extends
     }
   }
 
-  private def find(mongoSelector: BSONDocument): Future[Seq[Item]] = {
+  override def deleteIndex(index: String)(yeahRly: YeahReally): Future[Unit] = {
+    collection.indexesManager.drop(index).map(_ => ())
+  }
+
+  override def indices: Future[Seq[String]] = {
+    collection.indexesManager.list().map(_.flatMap(_.name.toSeq)).map(_.filterNot(isMongoIdIndex))
+  }
+
+  private def update(selectorWithoutVersion: BSONDocument, data: BSONDocument, upsert: Boolean, expectVersion: Long): Future[Unit] = {
+
+    val mongoSelector =
+      if (expectVersion != -1L) {
+        selectorWithoutVersion.add(VERSION -> expectVersion)
+      }
+      else {
+        selectorWithoutVersion
+      }
+
+    val mongoUpdate = BSONDocument("$set" -> data, "$inc" -> BSONDocument(VERSION -> 1L))
+
+    writeOp(collection.update(mongoSelector, mongoUpdate, upsert = upsert), { n =>
+      if (n <= 0) {
+        sizeImpl(selectorWithoutVersion).flatMap { n =>
+          if (n > 0) {
+            Future.failed(WrongDataVersion(s"Could not find the required item (v. $expectVersion) - another was found but with the wrong version for selector ${mongo2map(selectorWithoutVersion)}}"))
+          } else {
+            Future.failed(ItemNotFound(s"Could not find the required item (v. $expectVersion) to update for selector ${mongo2map(selectorWithoutVersion)}}"))
+          }
+        }
+      } else {
+        Future(())
+      }
+    }, { message =>
+      if (upsert && expectVersion != -1L) {
+        Future.failed(WrongDataVersion(s"upsert && expectVersion != -1L: Could not find the required item (v. $expectVersion) - another was found but with the wrong version for selector ${mongo2map(selectorWithoutVersion)}}, $message"))
+      } else {
+        if (upsert)
+          Future.failed(ItemAlreadyExists(s"Can't create item (v. $expectVersion) for selector ${mongo2map(selectorWithoutVersion)}} as another item with the same unique keys exist: $message"))
+        else
+          Future.failed(ItemNotFound(s"Could not find the required item (v. $expectVersion) to update for selector ${mongo2map(selectorWithoutVersion)}}, $message"))
+      }
+    })
+  }
+
+  private def findImpl(mongoSelector: BSONDocument): Future[Seq[Item]] = {
     val query = collection.find(mongoSelector, BSONDocument("_id" -> 0))
     query.cursor[BSONDocument]().collect[Seq]().map(_.map(toItem))
   }
 
-  private def size(mongoSelector: BSONDocument): Future[Int] = {
+  private def sizeImpl(mongoSelector: BSONDocument): Future[Int] = {
     if (mongoSelector.isEmpty)
       collection.count()
     else
@@ -199,36 +237,6 @@ case class MongoCollection(collection: BSONCollection, codec: BsonCodec) extends
     Item(fromMongo(data.remove(VERSION)), version)
   }
 
-  override def deleteItem(selector: Data, expectVersion: Long): Future[Unit] = {
-
-    val selectorWithoutVersion = map2mongo(selector)
-
-    val mongoSelector =
-      if (expectVersion != -1L) {
-        selectorWithoutVersion.add(VERSION -> expectVersion)
-      } else {
-        selectorWithoutVersion
-      }
-
-    writeOp(collection.remove(mongoSelector),
-      updateCountResult = { n =>
-        if (n <= 0) {
-          size(selectorWithoutVersion).flatMap { n =>
-            if (n > 0) {
-              Future.failed(WrongDataVersion(s"Could not find the required item (v. $expectVersion) - another was found but with the wrong version for selector ${mongo2map(selectorWithoutVersion)}}"))
-            } else {
-              Future.failed(ItemNotFound(s"Could not find the required item (v. $expectVersion) to update for selector ${mongo2map(selectorWithoutVersion)}}"))
-            }
-          }
-        } else {
-          Future(())
-        }
-      },
-      uniqueConflictResult = { _ => Future(()) } // Cannot happen on remove
-    )
-
-  }
-
   private def atomicCreateOrStore(mongoSelector: BSONDocument, defaultValue: BSONDocument): Future[Item] = {
 
     val command = BSONFindAndModifyCommand.Update(BSONDocument("$setOnInsert" -> defaultValue), fetchNewObject = true, upsert = true)
@@ -250,13 +258,6 @@ case class MongoCollection(collection: BSONCollection, codec: BsonCodec) extends
     index == "_id" || index == "_id_"
   }
 
-  override def deleteIndex(index: String)(yeahRly: YeahReally): Future[Unit] = {
-    collection.indexesManager.drop(index).map(_ => ())
-  }
-
-  override def indices: Future[Seq[String]] = {
-    collection.indexesManager.list().map(_.flatMap(_.name.toSeq)).map(_.filterNot(isMongoIdIndex))
-  }
 }
 
 object MongoCollection {
