@@ -1,4 +1,4 @@
-package se.gigurra.franklin
+package com.github.gigurra.franklin
 
 import java.io.Closeable
 

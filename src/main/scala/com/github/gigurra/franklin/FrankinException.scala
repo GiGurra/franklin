@@ -1,4 +1,4 @@
-package se.gigurra.franklin
+package com.github.gigurra.franklin
 
 /**
   * Created by johan on 2015-12-24.

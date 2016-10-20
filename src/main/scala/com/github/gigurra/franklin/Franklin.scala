@@ -1,7 +1,7 @@
-package se.gigurra.franklin
+package com.github.gigurra.franklin
 
-import se.gigurra.franklin.inmemimpl.ImMemStore
-import se.gigurra.franklin.mongoimpl.{DefaultBsonCodec, BsonCodec, MongoDb}
+import com.github.gigurra.franklin.inmemimpl.ImMemStore
+import com.github.gigurra.franklin.mongoimpl.{DefaultBsonCodec, BsonCodec, MongoDb}
 
 /**
   * Created by johan on 2015-12-23.

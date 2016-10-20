@@ -1,6 +1,6 @@
-package se.gigurra.franklin.inmemimpl
+package com.github.gigurra.franklin.inmemimpl
 
-import se.gigurra.franklin.Collection.Data
+import com.github.gigurra.franklin.Collection.Data
 
 /**
   * Created by johan on 2015-12-24.

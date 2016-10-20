@@ -1,7 +1,7 @@
-package se.gigurra.franklin.inmemimpl
+package com.github.gigurra.franklin.inmemimpl
 
-import se.gigurra.franklin.Collection.Data
-import se.gigurra.franklin.Item
+import com.github.gigurra.franklin.Collection.Data
+import com.github.gigurra.franklin.Item
 
 /**
   * Created by johan on 2015-12-24.

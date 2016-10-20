@@ -17,11 +17,11 @@ Franklin doesn't do any kind of authentication, so you better use him on a secur
 
 In your build.sbt:
 ```sbt
-.dependsOn(uri("git://github.com/GiGurra/franklin.git#0.1.10"))
+libraryDependencies += "com.github.gigurra" %% "franklin" % "0.1.11"
 ```
 In your code:
 ```scala
-import se.gigurra.franklin._
+import com.github.gigurra.franklin._
 
 val provider: Store = Franklin.loadInMemory()
  // or Franklin.loadMongo(database: String = "local", nodes: Seq[String] = Seq("127.0.0.1:27017"), codec: BsonCodec = DefaultBsonCodec)
