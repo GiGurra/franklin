@@ -1,4 +1,4 @@
-package se.gigurra.franklin.mongoimpl
+package com.github.gigurra.franklin.mongoimpl
 
 /**
   * Created by kjolh on 12/30/2015.

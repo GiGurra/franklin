@@ -1,4 +1,4 @@
-package se.gigurra.franklin.mongoimpl
+package com.github.gigurra.franklin.mongoimpl
 
 import reactivemongo.api.{MongoConnection, MongoDriver}
 

@@ -1,6 +1,6 @@
-package se.gigurra.franklin.inmemimpl
+package com.github.gigurra.franklin.inmemimpl
 
-import se.gigurra.franklin.{Collection, Store}
+import com.github.gigurra.franklin.{Collection, Store}
 
 import scala.collection.mutable
 

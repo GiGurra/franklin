@@ -1,10 +1,10 @@
-package se.gigurra.franklin
+package com.github.gigurra.franklin
 
 import java.util.UUID
 
 import org.scalatest._
 import org.scalatest.mock._
-import se.gigurra.franklin.Collection._
+import com.github.gigurra.franklin.Collection._
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}

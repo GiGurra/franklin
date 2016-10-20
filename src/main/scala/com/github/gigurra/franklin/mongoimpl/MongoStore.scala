@@ -1,4 +1,4 @@
-package se.gigurra.franklin.mongoimpl
+package com.github.gigurra.franklin.mongoimpl
 
 import java.util.concurrent.TimeUnit
 import java.util.logging.Logger
@@ -6,7 +6,7 @@ import java.util.logging.Logger
 import reactivemongo.api.{MongoConnection, DB}
 import reactivemongo.api.collections.bson.BSONCollection
 import reactivemongo.bson.BSONDocument
-import se.gigurra.franklin.{Collection, Store}
+import com.github.gigurra.franklin.{Collection, Store}
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration

@@ -1,10 +1,10 @@
-package se.gigurra.franklin.mongoimpl
+package com.github.gigurra.franklin.mongoimpl
 
 import java.time.Instant
 import java.util.Date
 
 import reactivemongo.bson._
-import se.gigurra.franklin.FranklinException
+import com.github.gigurra.franklin.FranklinException
 
 trait BsonCodec {
   def mongoValue2Any(value: BSONValue): Any

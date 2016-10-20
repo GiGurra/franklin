@@ -1,8 +1,8 @@
-package se.gigurra.franklin.inmemimpl
+package com.github.gigurra.franklin.inmemimpl
 
-import se.gigurra.franklin.Collection.Data
-import se.gigurra.franklin._
-import se.gigurra.franklin.inmemimpl.Match.{Correct, WrongPattern, WrongVersion}
+import com.github.gigurra.franklin.Collection.Data
+import com.github.gigurra.franklin._
+import com.github.gigurra.franklin.inmemimpl.Match.{Correct, WrongPattern, WrongVersion}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global

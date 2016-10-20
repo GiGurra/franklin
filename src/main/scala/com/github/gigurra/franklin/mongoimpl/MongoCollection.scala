@@ -1,4 +1,4 @@
-package se.gigurra.franklin.mongoimpl
+package com.github.gigurra.franklin.mongoimpl
 
 import java.util.logging.Logger
 
@@ -8,8 +8,8 @@ import reactivemongo.api.commands.{CommandError, WriteResult}
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONLong}
 import reactivemongo.core.errors.DatabaseException
-import se.gigurra.franklin.Collection.Data
-import se.gigurra.franklin._
+import com.github.gigurra.franklin.Collection.Data
+import com.github.gigurra.franklin._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

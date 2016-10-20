@@ -1,4 +1,4 @@
-package se.gigurra.franklin
+package com.github.gigurra.franklin
 
 import Collection.Data
 import scala.concurrent.{ExecutionContext, Future}
